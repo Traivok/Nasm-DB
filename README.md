@@ -6,7 +6,7 @@ On your terminal, run:
 
 ###For Nasm compiler and emulator
 ` $ sudo apt-get install nasm `
-` $ sudo apt install qemu-system-x86 `
+` $ sudo apt-get install qemu-system-x86 `
 
 ###For compiling and emulatings
 ` $ nasm -f bin FILENAME.asm -o FILENAME `
