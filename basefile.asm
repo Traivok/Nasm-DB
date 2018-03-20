@@ -1,11 +1,12 @@
 org 0x7e00        ; endereço de memória em que o programa será carregado
 jmp 0x0000:start  ; far jump - seta cs para 0
 
-; reservando espaços para as variáveis
-username times 21 db 0
-cpf times 12 db 0
-agency times 5 db 0
-acc times 7 db 0
+; reservando espaços para as variáveis de leitura
+username times 21 db 0  ;for storing client's username
+cpf times 12 db 0       ;for storing client's cpf
+agency times 5 db 0     ;for storing client's bank agency
+acc times 7 db 0        ;for storing client's bank account
+buf times 5 db 0        ;general purpose keyboard buffer
 
 ; frases do menu principal
 title db ' Welcome to the SafeMoney Bank System ', 0
@@ -24,48 +25,68 @@ start:
     mov ss, ax	; zera stack
 	mov sp, 0x7c00
 
-    ;; Print main menu routine.
+    pusha	    ; save state
 
+    ;; Print main menu routine.
     .mainmenu:
-    	pusha	 		    ; save state
-       
-        mov si, title     ; printstr uses si as parameter
+        mov si, title       ; printstr uses si as parameter
         call printstr       ; call it
         call println        ; print a line break
        
-        mov si, subtitle  ; preparing for printstr
+        mov si, subtitle    ; preparing for printstr
         call printstr       ; calling
         call println        ; print a line break
         call println        ; print a line break
 
-        mov si, option1   ; preparing for printstr
+        mov si, option1     ; preparing for printstr
         call printstr       ; calling
         call println        ; print a line break
 
-        mov si, option2   ; preparing for printstr
+        mov si, option2     ; preparing for printstr
         call printstr       ; calling
         call println        ; print a line break
 
-        mov si, option3   ; preparing for printstr
+        mov si, option3     ; preparing for printstr
         call printstr       ; calling
         call println        ; print a line break
 
-        mov si, option4   ; preparing for printstr
+        mov si, option4     ; preparing for printstr
         call printstr       ; calling
         call println        ; print a line break
 
-        mov si, option5   ; preparing for printstr
+        mov si, option5     ; preparing for printstr
         call printstr       ; calling
         call println        ; print a line break
 
-        mov si, option6   ; preparing for printstr
+        mov si, option6     ; preparing for printstr
         call printstr       ; calling
         call println        ; print a line break
 
-        popa			    ; get previous state
+        jmp readfromuser
+    
+    ;; Routine for reading desired option from user.
+    readfromuser:
+        mov di, buf         ; readstr saves the keyboard input on the memory pointed by di
+        call readvstr       ; reads user input
+        mov si, buf         ; preparing for atoi
+        call atoi           ; converts user input to integer number
+
+        mov di, buf
+        add al, 48
+        stosb
+        mov al, 0
+        stosb
+        call printstr       ; test 
+
+    popa	    ; get previous state
+
+    create:
+    read:
+    delete:
+    
 
 jmp done
- 
+
 
 
 
@@ -82,22 +103,22 @@ jmp done
 ;; @reg: ax, bx
 ;; @param: use si to print
 printstr:
-.start:
+    .start:
 
-	lodsb 		; si -> al
-	cmp al, 0
-	je .done 	; if (end of string) return
-	jmp .print 	; else print current char
+        lodsb 		; si -> al
+        cmp al, 0
+        je .done 	; if (end of string) return
+        jmp .print 	; else print current char
 
-.print:
-	mov ah, 0xe 	; print char and move cursor foward
-	mov bh, 0 	; page number
-	mov bl, 0xf 	; white color
-	int 10h 	; video interrupt
-	
-	jmp .start 
-.done:
-	ret
+    .print:
+        mov ah, 0xe 	; print char and move cursor foward
+        mov bh, 0 	; page number
+        mov bl, 0xf 	; white color
+        int 10h 	; video interrupt
+        
+        jmp .start 
+    .done:
+        ret
 
 ;;; read string
 ;; @reg: ax
