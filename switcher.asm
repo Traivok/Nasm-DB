@@ -6,7 +6,7 @@ start:
     mov ds, ax
     mov es, ax
 
-    mov ax, 0x7e0 ;0x50<<1 = 0x500 (início de boot2.asm)
+    mov ax, 0x7e0 ;0x50<<1 = 0x500 (início de basefile.asm)
     mov es, ax
     xor bx, bx   ;posição = es<<1+bx
 
@@ -32,7 +32,7 @@ load:
 
     jc load     ;se o acesso falhar, tenta novamente
 
-    jmp 0x7e00   ;pula para o setor de endereco 0x500 (start do kernel)
+    jmp 0x7e00   ;pula para o setor de endereco 0x7e00 (start do kernel)
 
 times 510-($-$$) db 0 ;512 bytes
 dw 0xaa55             ;assinatura
