@@ -1,7 +1,7 @@
 org 0x7c00
 jmp 0x0000:start
 
-myStringBoladona db "Cuan dificil es,\ncuando todo baja,\nno bajar tambien.\n"
+myStringBoladona db ' jraf, escape characters dont work here. ', 0
 	
 start:
 	xor ax, ax		; reg init
@@ -11,11 +11,11 @@ start:
 	mov sp, 0x7c00
 
 	pusha	 		; save state
-	mov si, [stringBoladona] ; printstr uses si as parameter
+	mov si, myStringBoladona ; printstr uses si as parameter
 	call printstr		 ; call it
 	popa			 ; get previous state
 
-	j done
+	jmp done
 	
 ;;; print string
 ;; @reg: ax, bx
