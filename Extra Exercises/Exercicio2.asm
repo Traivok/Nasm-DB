@@ -75,8 +75,8 @@ QUERY_AC:
 			dec ax								; decrements ax
 			loop .movName						; loops back to fill up the name
 
-		pop cx		; index of entry
-		mov ax, 1	; found flag
+		pop cx									; index of entry
+		mov ax, 1								; found flag
 
 	.end:
 		ret
