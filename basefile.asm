@@ -12,11 +12,13 @@ buf times 5 db 0        ;general purpose keyboard buffer
 title db ' Welcome to the SafeMoney Bank System ', 0
 subtitle db ' Please select your operation below ', 0
 option1 db ' 1. Create new account ', 0
-option2 db ' 2. Show existing account', 0
-option3 db ' 3. Edit existing account', 0
-option4 db ' 4. Delete existing account', 0
-option5 db ' 5. List SafeMoney agencies', 0
-option6 db ' 6. List SafeMoney accounts', 0
+option2 db ' 2. Show existing account ', 0
+option3 db ' 3. Edit existing account ', 0
+option4 db ' 4. Delete existing account ', 0
+option5 db ' 5. List SafeMoney agencies ', 0
+option6 db ' 6. List SafeMoney accounts ', 0
+option7 db ' 7. Exit SafeMoney Bank ', 0
+invopt db ' Invalid command provided. Please try again. ', 0
 
 start:
     xor ax, ax  ; zera ax
@@ -28,7 +30,9 @@ start:
     pusha	    ; save state
 
     ;; Print main menu routine.
-    .mainmenu:
+    mainmenu:
+        call clearScr       ; First things first, let's start with a fresh screen.
+
         mov si, title       ; printstr uses si as parameter
         call printstr       ; call it
         call println        ; print a line break
@@ -62,6 +66,10 @@ start:
         call printstr       ; calling
         call println        ; print a line break
 
+        mov si, option7     ; preparing for printstr
+        call printstr       ; calling
+        call println        ; print a line break
+
         jmp readfromuser
     
     ;; Routine for reading desired option from user.
@@ -69,20 +77,70 @@ start:
         mov di, buf         ; readstr saves the keyboard input on the memory pointed by di
         call readvstr       ; reads user input
         mov si, buf         ; preparing for atoi
-        call atoi           ; converts user input to integer number
+        call atoi           ; converts user input to integer number and saves at dl
+        call clearScr       ; clears out the string after reading
+        jmp redirect        ; jumps to redirection routine
 
-        mov di, buf
-        add al, 48
-        stosb
-        mov al, 0
-        stosb
-        call printstr       ; test 
+    redirect:
+        cmp dl, 1           ; compares the value read by the keyboard
+        je create           ; jumps to the create section
+
+        cmp dl, 2           ; compares the value read by the keyboard
+        je show             ; jumps to the show section
+
+        cmp dl, 3           ; compares the value read by the keyboard
+        je edit             ; jumps to the edit section
+        
+        cmp dl, 4           ; compares the value read by the keyboard
+        je delete           ; jumps to the delete section
+
+        cmp dl, 5           ; compares the value read by the keyboard
+        je listagencies     ; jumps to the listagencies section
+
+        cmp dl, 6           ; compares the value read by the keyboard
+        je listaccounts     ; jumps to the listaccounts section
+
+        cmp dl, 7           ; compares the value read by the keyboard
+        je exit             ; jumps to the exit section
+
+        jmp exception       ; if no number from 1 - 7 was provided, jump to exception and throw out an error.
 
     popa	    ; get previous state
 
     create:
-    read:
+        ; create code goes here
+        jmp done
+
+    show:
+        ; show code goes here
+        jmp done
+
+    edit:
+        ; edit code goes here
+        jmp done
+
     delete:
+        ; delete code goes here
+        jmp done
+    
+    listagencies:
+        ; list agencies code goes here
+        jmp done
+    
+    listaccounts:
+        ; list accounts code goes here
+        jmp done
+
+    exit:
+        ; bye
+        jmp done
+
+    exception:
+        mov si, invopt      ; preparing for printstr
+        call printstr       ; calling
+        call println        ; print a line break
+        jmp mainmenu        ; back to main menu so user can select another option
+
     
 
 jmp done
@@ -306,6 +364,20 @@ toUpper:
 		jmp toUpper
 	.done:
 		ret
+
+;;; Clears out the entire screen of text, so when printing something new, you can start fresh.
+;; @desc: al has the info of the desired video mode. The available ones are [00h, 03h, 13h]. When int 10h is called and ah is set to 0, the video mode is set.
+;; @reg: ah, al, bl
+;; @param: none
+;; @ret: none
+
+clearScr:
+    pusha
+    mov ah, 0x00    ; ah = 0, sets video mode when int 10h is called
+    mov al, 0x03    ; text mode. 80x25. 16 colors. 8 pages. 
+    int 0x10        ; set video mode to the one specified at al
+    popa
+    ret
 
 done:
 	jmp $ 			; infinity jump
