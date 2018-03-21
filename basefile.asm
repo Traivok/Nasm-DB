@@ -106,59 +106,59 @@ start:
 
     redirect:
         cmp dl, 1           ; compares the value read by the keyboard
-        je create           ; jumps to the create section
+        je CREATE           ; jumps to the CREATE section
 
         cmp dl, 2           ; compares the value read by the keyboard
-        je show             ; jumps to the show section
+        je SHOW             ; jumps to the SHOW section
 
         cmp dl, 3           ; compares the value read by the keyboard
-        je edit             ; jumps to the edit section
+        je EDIT             ; jumps to the EDIT section
         
         cmp dl, 4           ; compares the value read by the keyboard
-        je delete           ; jumps to the delete section
+        je DELETE           ; jumps to the DELETE section
 
         cmp dl, 5           ; compares the value read by the keyboard
-        je listagencies     ; jumps to the listagencies section
+        je LISTAGENCIES     ; jumps to the LISTAGENCIES section
 
         cmp dl, 6           ; compares the value read by the keyboard
-        je listaccounts     ; jumps to the listaccounts section
+        je LISTACCOUNTS     ; jumps to the LISTACCOUNTS section
 
         cmp dl, 7           ; compares the value read by the keyboard
-        je exit             ; jumps to the exit section
+        je EXIT             ; jumps to the EXIT section
 
-        jmp exception       ; if no number from 1 - 7 was provided, jump to exception and throw out an error.
+        jmp EXCEPTION       ; if no number from 1 - 7 was provided, jump to EXCEPTION and throw out an error.
 
     popa	    ; get previous state
 
-    create:
+    CREATE:
         ; create code goes here
         jmp END
 
-    show:
-        ; show code goes here
+    SHOW:
+        ; SHOW code goes here
         jmp END
 
-    edit:
-        ; edit code goes here
+    EDIT:
+        ; EDIT code goes here
         jmp END
 
-    delete:
-        ; delete code goes here
+    DELETE:
+        ; DELETE code goes here
         jmp END
     
-    listagencies:
+    LISTAGENCIES:
         ; list agencies code goes here
         jmp END
     
-    listaccounts:
+    LISTACCOUNTS:
         ; list accounts code goes here
         jmp END
 
-    exit:
+    EXIT:
         ; bye
         jmp END
 
-    exception:
+    EXCEPTION:
         mov si, invopt      ; preparing for printstr
         call printstr       ; calling
         call println        ; print a line break
@@ -414,11 +414,13 @@ INIT:
 QUERY_AC:
 	.start:
 		mov cx, LENGTH							; sets the cx register with the current number of entries on the db
-		mov ax, 0								; resets ax
 	.while:
 		cmp word [COD_AG + cx], bx				; compares the agency code at index cx to see if it matches the provided one
-		je found								; if yes, jump to found
+		je .found								; if yes, jump to found
 		loop .while								; else, search again, one position back (since we're searching from the end)
+    .notFound:
+    	mov ax, 0								; resets ax
+        jmp .end
 	.found:
 		mov word [IO_AC], bx					; moves the provided (now also found!) account number to the account number buffer
 		
