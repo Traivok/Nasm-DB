@@ -1,24 +1,45 @@
-org 0x7e00        ; endereço de memória em que o programa será carregado
-jmp 0x0000:start  ; far jump - seta cs para 0
+org 0x7c00
+jmp 0x0000:START
 
-; reservando espaços para as variáveis de leitura
-username times 21 db 0  ;for storing client's username
-cpf times 12 db 0       ;for storing client's cpf
-agency times 5 db 0     ;for storing client's bank agency
-acc times 7 db 0        ;for storing client's bank account
-buf times 5 db 0        ;general purpose keyboard buffer
+;;; BEGIN OF ARRAY SECTION
+CAPACITY EQU 6
+NAME 	 TIMES CAPACITY * 20 DB 0 	; array of 20 characters by item
+CPF 	 TIMES CAPACITY 	 DD 0	; all above will use double word integer
+COD_AG 	 TIMES CAPACITY 	 DW 0
+COD_AC 	 TIMES CAPACITY 	 DW 1
+LENGTH 	 					 DW 0	; the current of size of DB starts empty
+;;; END OF ARRAY SECTION
 
-; frases do menu principal
-title db ' Welcome to the SafeMoney Bank System ', 0
-subtitle db ' Please select your operation below ', 0
-option1 db ' 1. Create new account ', 0
-option2 db ' 2. Show existing account ', 0
-option3 db ' 3. Edit existing account ', 0
-option4 db ' 4. Delete existing account ', 0
-option5 db ' 5. List SafeMoney agencies ', 0
-option6 db ' 6. List SafeMoney accounts ', 0
-option7 db ' 7. Exit SafeMoney Bank ', 0
-invopt db ' Invalid command provided. Please try again. ', 0
+;;; BEGIN OF FLAGS SECTION
+GET_ALL_AGENCIES 				DB 0  ; when an update/create/remove of agency number, be called, set to 1
+AGENCIES 	TIMES CAPACITY 		DW 1  ; all unique agencies of this DB
+;;; END OF FLAGS SECTION
+
+;;; BEGIN OF IO SECTION
+IO_NAME TIMES 21 DB 0  ; for storing client's username
+IO_CPF 			 DD 0  ; for storing client's cpf
+IO_AG			 DW 0  ; for storing client's bank agency
+IO_AC 			 DW 0  ; for storing client's bank account
+BUFF 	TIMES 21 DW 0  ; general purpose keyboard buffer
+;;; END OF IO SECTION
+
+;;; MAIN MENU OPTIONS
+title       DB ' Welcome to the SafeMoney Bank System '         , 0
+subtitle    DB ' Please select your operation below '           , 0
+option1     DB ' 1. Create new account '                        , 0
+option2     DB ' 2. Show existing account '                     , 0
+option3     DB ' 3. Edit existing account '                     , 0
+option4     DB ' 4. Delete existing account '                   , 0
+option5     DB ' 5. List SafeMoney agencies '                   , 0
+option6     DB ' 6. List SafeMoney accounts '                   , 0
+option7     DB ' 7. Exit SafeMoney Bank '                       , 0
+invopt      DB ' Invalid command provided. Please try again. '  , 0
+;;; END OF MAIN MENU OPTIONS
+
+
+;%macro 
+	;TODO MACRO MEM-T0-MEM
+;%endmacro
 
 start:
     xor ax, ax  ; zera ax
@@ -26,6 +47,8 @@ start:
     mov es, ax  ; zera es
     mov ss, ax	; zera stack
 	mov sp, 0x7c00
+
+    call INIT
 
     pusha	    ; save state
 
@@ -109,31 +132,31 @@ start:
 
     create:
         ; create code goes here
-        jmp done
+        jmp END
 
     show:
         ; show code goes here
-        jmp done
+        jmp END
 
     edit:
         ; edit code goes here
-        jmp done
+        jmp END
 
     delete:
         ; delete code goes here
-        jmp done
+        jmp END
     
     listagencies:
         ; list agencies code goes here
-        jmp done
+        jmp END
     
     listaccounts:
         ; list accounts code goes here
-        jmp done
+        jmp END
 
     exit:
         ; bye
-        jmp done
+        jmp END
 
     exception:
         mov si, invopt      ; preparing for printstr
@@ -143,19 +166,12 @@ start:
 
     
 
-jmp done
+jmp END
 
 
-
-
-
-
-
-
-
-
-
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IO FUNCTIONS;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; print string
 ;; @reg: ax, bx
@@ -379,5 +395,55 @@ clearScr:
     popa
     ret
 
-done:
-	jmp $ 			; infinity jump
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DATABASE FUNCTIONS;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; initialize booleans, flags and stuff
+INIT:	
+	mov word [LENGTH], 0 ; reset size of DB
+	mov word [GET_ALL_AGENCIES], 0
+	ret
+
+;;; return the index of the last entry that matches with the provider Account
+;; @reg: 	CX, AX, EBX
+;; @param:	BX that contains the Account number
+;; @ret:	CX will be the index of that element
+;; @ret:	AX will be 0 if not found, else 1
+QUERY_AC:
+	.start:
+		mov cx, LENGTH							; sets the cx register with the current number of entries on the db
+		mov ax, 0								; resets ax
+	.while:
+		cmp word [COD_AG + cx], bx				; compares the agency code at index cx to see if it matches the provided one
+		je found								; if yes, jump to found
+		loop .while								; else, search again, one position back (since we're searching from the end)
+	.found:
+		mov word [IO_AC], bx					; moves the provided (now also found!) account number to the account number buffer
+		
+		mov ebx, dword [CPF + cx]				; moves the found CPF on the position cx to the ebx register (intermediary)
+		mov dword [IO_CPF], ebx					; moves the content of the ebx register to the CPF memory buffer
+		
+		mov bx, word [COD_AG + cx]				; moves the found acency on the position cx to the bx register (intermediary)
+		mov word [IO_AG], bx					; moves the content of the bx register to the agency memory buffer
+
+		push cx									; save cx (index) on the stack
+		mov ax, 20								; sets ax to 20
+		mul cx									; multiplies ax * cx, now [ax = (cx*20)] (since we need to navigate through the whole list of names)
+		mov cx, 20								; sets cx back to 20 to navigate on a single name (name buffer)
+
+		.movName:								; IO_NAME[i] = NAME[ (length * 20) - i ] 
+			mov bl, byte [NAME + ax]			; ax contains (length * 20) - i, since NAME is the whole database entries
+			mov byte [IO_NAME + cx], bl			; cx contains i, since IO_NAME only contains one entry
+			dec ax								; decrements ax
+			loop .movName						; loops back to fill up the name
+
+		pop cx									; index of entry
+		mov ax, 1								; found flag
+
+	.end:
+		ret
+
+END:
+	jmp $
