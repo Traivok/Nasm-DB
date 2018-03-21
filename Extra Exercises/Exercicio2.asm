@@ -50,11 +50,13 @@ INIT:
 QUERY_AC:
 	.start:
 		mov cx, LENGTH							; sets the cx register with the current number of entries on the db
-		mov ax, 0								; resets ax
 	.while:
 		cmp word [COD_AG + cx], bx				; compares the agency code at index cx to see if it matches the provided one
-		je found								; if yes, jump to found
+		je .found								; if yes, jump to found
 		loop .while								; else, search again, one position back (since we're searching from the end)
+    .notFound:
+    	mov ax, 0								; resets ax
+        jmp .end
 	.found:
 		mov word [IO_AC], bx					; moves the provided (now also found!) account number to the account number buffer
 		
