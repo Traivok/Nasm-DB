@@ -36,6 +36,12 @@ option7     DB ' 7. Exit SafeMoney Bank '                       , 0
 invopt      DB ' Invalid command provided. Please try again. '  , 0
 ;;; END OF MAIN MENU OPTIONS
 
+;;; CREATE OPTIONS
+prompt1		DB ' Please type the name of the account owner '	, 0
+prompt2		DB ' Please type the CPF of the account owner '		, 0
+prompt3		DB ' Please type the Agency of the new account '	, 0
+prompt4		DB ' Please type the Code of the new account '		, 0
+;;; END OF CREATE OPTIONS
 
 ;%macro 
 	;TODO MACRO MEM-T0-MEM
@@ -97,9 +103,9 @@ start:
     
     ;; Routine for reading desired option from user.
     readfromuser:
-        mov di, buf         ; readstr saves the keyboard input on the memory pointed by di
+        mov di, BUFF        ; readstr saves the keyboard input on the memory pointed by di
         call readvstr       ; reads user input
-        mov si, buf         ; preparing for atoi
+        mov si, BUFF        ; preparing for atoi
         call atoi           ; converts user input to integer number and saves at dl
         call clearScr       ; clears out the string after reading
         jmp redirect        ; jumps to redirection routine
@@ -131,7 +137,84 @@ start:
     popa	    ; get previous state
 
     CREATE:
-        ; create code goes here
+		.start:
+			mov cx, LENGTH
+
+		.nameread:
+			call clearScr       ; fresh screen.
+
+			mov si, prompt1     ; printstr uses si as parameter
+			call printstr       ; call it
+			call println        ; print a line break
+
+			mov di, IO_NAME		; Points to IO_NAME memory
+			call readvstr		; read string to that memory position
+		.namestore:
+			mov si, IO_NAME		; points the source to IO_NAME
+
+			mov ax, 20			; sets ax to 20
+			mul cx				; multiplies ax * cx, now [ax = (cx*20)] (since we need to navigate through the whole list of names)
+
+			mov cx, 20 					; sets cx to 20 so we can iterate
+			mov di, [NAME + ax]			; points destination index to the start of the first empty name space 					
+			.storechar:
+				lodsb					; reads a character from IO_NAME and saves at AL
+				stosb					; picks the character at al and saves at [NAME + ax]
+				loop .storechar
+		
+				
+
+		.cpfread:
+			call clearScr       ; fresh screen.
+
+			mov si, prompt2     ; printstr uses si as parameter
+			call printstr       ; call it
+			call println        ; print a line break
+
+			mov di, BUFF		; Points to BUFF memory
+			call readvstr		; read string to that memory position
+
+			xor edx, edx		; puts zero on edx to make sure that (value at dl == value at edx)
+
+			call atoi           ; converts user input to integer number and saves at dl
+
+		.cpfstore:
+			mov dword [IO_CPF + cx], edx
+
+		.agencyread:
+			call clearScr       ; fresh screen.
+
+			mov si, prompt3     ; printstr uses si as parameter
+			call printstr       ; call it
+			call println        ; print a line break
+
+			mov di, BUFF		; Points to BUFF memory
+			call readvstr		; read string to that memory position
+
+			xor edx, edx
+
+			call atoi           ; converts user input to integer number and saves at dl
+		.agencystore:
+			mov word [COD_AG + cx], dx
+
+		.accountread:
+			call clearScr       ; fresh screen.
+
+			mov si, prompt4     ; printstr uses si as parameter
+			call printstr       ; call it
+			call println        ; print a line break
+
+			mov di, BUFF		; Points to BUFF memory
+			call readvstr		; read string to that memory position
+
+			xor edx, edx
+
+			call atoi           ; converts user input to integer number and saves at dl
+		.accountstore:
+			mov word [COD_AC + cx], dx
+			
+
+
         jmp END
 
     SHOW:
