@@ -1,4 +1,4 @@
-org 0x7c00
+org 0x7e00
 jmp 0x0000:START
 
 ;;; BEGIN OF ARRAY SECTION
@@ -47,7 +47,7 @@ prompt4		DB ' Please type the Code of the new account '		, 0
 	;TODO MACRO MEM-T0-MEM
 ;%endmacro
 
-start:
+START:
     xor ax, ax  ; zera ax
     mov ds, ax  ; zera ds
     mov es, ax  ; zera es
@@ -156,7 +156,9 @@ start:
 			mul cx				; multiplies ax * cx, now [ax = (cx*20)] (since we need to navigate through the whole list of names)
 
 			mov cx, 20 					; sets cx to 20 so we can iterate
-			mov di, [NAME + ax]			; points destination index to the start of the first empty name space 					
+			mov di, NAME					
+			add di, ax					; points destination index to the start of the first empty name space 
+
 			.storechar:
 				lodsb					; reads a character from IO_NAME and saves at AL
 				stosb					; picks the character at al and saves at [NAME + ax]
@@ -179,7 +181,8 @@ start:
 			call atoi           ; converts user input to integer number and saves at dl
 
 		.cpfstore:
-			mov dword [IO_CPF + cx], edx
+			mov bx, cx
+			mov dword [IO_CPF + bx], edx
 
 		.agencyread:
 			call clearScr       ; fresh screen.
@@ -195,7 +198,8 @@ start:
 
 			call atoi           ; converts user input to integer number and saves at dl
 		.agencystore:
-			mov word [COD_AG + cx], dx
+			mov bx, cx
+			mov word [COD_AG + bx], dx
 
 		.accountread:
 			call clearScr       ; fresh screen.
@@ -211,11 +215,12 @@ start:
 
 			call atoi           ; converts user input to integer number and saves at dl
 		.accountstore:
-			mov word [COD_AC + cx], dx
+			mov bx, cx
+			mov word [COD_AC + bx], dx
 			
 
 
-        jmp END
+        jmp mainmenu
 
     SHOW:
         ; SHOW code goes here
@@ -490,28 +495,29 @@ INIT:
 	ret
 
 ;;; return the index of the last entry that matches with the provider Account
-;; @reg: 	CX, AX, EBX
-;; @param:	BX that contains the Account number
+;; @reg: 	CX, AX, BX, EDX
+;; @param:	DX that contains the Account number
 ;; @ret:	CX will be the index of that element
 ;; @ret:	AX will be 0 if not found, else 1
 QUERY_AC:
 	.start:
-		mov cx, LENGTH							; sets the cx register with the current number of entries on the db
+		mov cx, LENGTH
+		mov bx, LENGTH							; sets the bx register with the current number of entries on the db
 	.while:
-		cmp word [COD_AG + cx], bx				; compares the agency code at index cx to see if it matches the provided one
+		cmp word [COD_AG + bx], dx				; compares the agency code at index bx to see if it matches the provided one
 		je .found								; if yes, jump to found
 		loop .while								; else, search again, one position back (since we're searching from the end)
     .notFound:
     	mov ax, 0								; resets ax
         jmp .end
 	.found:
-		mov word [IO_AC], bx					; moves the provided (now also found!) account number to the account number buffer
+		mov word [IO_AC], dx					; moves the provided (now also found!) account number to the account number buffer
 		
-		mov ebx, dword [CPF + cx]				; moves the found CPF on the position cx to the ebx register (intermediary)
-		mov dword [IO_CPF], ebx					; moves the content of the ebx register to the CPF memory buffer
+		mov edx, dword [CPF + bx]				; moves the found CPF on the position bx to the edx register (intermediary)
+		mov dword [IO_CPF], edx					; moves the content of the edx register to the CPF memory buffer
 		
-		mov bx, word [COD_AG + cx]				; moves the found acency on the position cx to the bx register (intermediary)
-		mov word [IO_AG], bx					; moves the content of the bx register to the agency memory buffer
+		mov dx, word [COD_AG + bx]				; moves the found acency on the position bx to the dx register (intermediary)
+		mov word [IO_AG], dx					; moves the content of the dx register to the agency memory buffer
 
 		push cx									; save cx (index) on the stack
 		mov ax, 20								; sets ax to 20
@@ -519,8 +525,12 @@ QUERY_AC:
 		mov cx, 20								; sets cx back to 20 to navigate on a single name (name buffer)
 
 		.movName:								; IO_NAME[i] = NAME[ (length * 20) - i ] 
-			mov bl, byte [NAME + ax]			; ax contains (length * 20) - i, since NAME is the whole database entries
-			mov byte [IO_NAME + cx], bl			; cx contains i, since IO_NAME only contains one entry
+			mov bx, cx
+			push bx
+			mov ax, bx
+			mov dl, byte [NAME + bx]			; ax contains (length * 20) - i, since NAME is the whole database entries
+			pop bx
+			mov byte [IO_NAME + bx], dl			; cx contains i, since IO_NAME only contains one entry
 			dec ax								; decrements ax
 			loop .movName						; loops back to fill up the name
 
