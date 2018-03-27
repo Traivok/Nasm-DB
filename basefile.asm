@@ -21,6 +21,7 @@ IO_CPF 			 DD 0  ; for storing client's cpf
 IO_AG			 DW 0  ; for storing client's bank agency
 IO_AC 			 DW 0  ; for storing client's bank account
 BUFF 	TIMES 21 DW 0  ; general purpose keyboard buffer
+SEPARATOR 		DB '-------------------------------------', 0
 ;;; END OF IO SECTION
 
 ;;; MAIN MENU OPTIONS
@@ -544,6 +545,69 @@ COPY_TO_OUTPUT:
 	
 	.end:
 		pop bx
+		ret
+
+
+;;; transform number into string and print it
+;; @reg: AX SI DI
+;; @param: AX output NUMBER to parse
+;; @ret: BUFF string
+;;;-----------------------------TO DO, MODIFY TOSTRING TO USE EAX AS INPUT---------------------;;;
+PRINT_NUMBER_FIELD:	
+
+	mov BUFF, di		; BUFF will be the string d
+	call tostring		; transform AX to string
+	
+	mov si, BUFF		; use BUFF as printstr parameter
+	call printstr		; call printstr
+	call println		; print a new line
+
+	ret	
+	
+;;; print an entry using IO memory
+;; @warning: it will modify BUFF
+PRINT_ENTRY:
+	.start:
+
+		push si				; save state
+		push di
+		push ax
+
+		mov si, separator 		; print an output separator
+	
+		mov si, IO_NAME			; print name attribute 
+		call printstr
+		call println
+
+		;; mov ax, [CPF] CPF NEED EAX
+
+		mov ax, [IO_AC]			; print Account attribute
+		call PRINT_NUMBER_FIELD
+
+		mov ax, [IO_AG]			; finally print Agency attribute
+		call PRINT_NUMBER_FIELD
+	
+	.end:
+		pop ax				; return to the previous state
+		pop di
+		pop si
+		ret
+
+;;; print all of Database
+;; @warning: it will modify BUFF
+PRINT_ALL_ENTRIES:
+	.start:
+		push cx				; save state
+	
+		mov cx, 0[LENGTH] 		; get size of DB 
+
+	.while:
+		call COPY_TO_OUTPUT 		; copy DB[CX] to output
+		call PRINT_ENTRY		; print DB[CX] using output cache
+		cmp cx, [LENGTH]		; check if all entries was printed
+		jb .while			; while ( |cx| < [LENGTH] )
+	.end
+		pop cx				; load previous cx
 		ret
 	
 END:
