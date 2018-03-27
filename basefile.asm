@@ -494,6 +494,7 @@ INIT:
 ;; @param:	BX that contains the Account number
 ;; @ret:	CX will be the index of that element
 ;; @ret:	AX will be 0 if not found, else 1
+;; @ret: 	IO FIELD will be setted with queried entry, if found
 QUERY_AC:
 	.start:
 		mov cx, LENGTH							; sets the cx register with the current number of entries on the db
@@ -501,16 +502,31 @@ QUERY_AC:
 		cmp word [COD_AG + cx], bx				; compares the agency code at index cx to see if it matches the provided one
 		je .found								; if yes, jump to found
 		loop .while								; else, search again, one position back (since we're searching from the end)
-    .notFound:
-    	mov ax, 0								; resets ax
-        jmp .end
+	.notFound:
+    		mov ax, 0								; resets ax
+        	jmp .end
 	.found:
-		mov word [IO_AC], bx					; moves the provided (now also found!) account number to the account number buffer
-		
+
+		call COPY_TO_OUTPUT 							; move entry data to output
+		mov ax, 1								; found flag
+
+	.end:
+		ret
+
+;;; copy an entry of BD to IO cache
+;; @reg: 	CX
+;; @param:	CX index of some entry
+COPY_TO_OUTPUT:
+	.start:
+		push bx							; BX will be used as an auxiliar variable
+
+		mov bx, word [COD_AC] 					; move the found Account number to aux reg
+		mov word [IO_AC], bx 					; and move it to IO memory
+	
 		mov ebx, dword [CPF + cx]				; moves the found CPF on the position cx to the ebx register (intermediary)
 		mov dword [IO_CPF], ebx					; moves the content of the ebx register to the CPF memory buffer
 		
-		mov bx, word [COD_AG + cx]				; moves the found acency on the position cx to the bx register (intermediary)
+		mov bx, word [COD_AG + cx]				; moves the found agency on the position cx to the bx register (intermediary)
 		mov word [IO_AG], bx					; moves the content of the bx register to the agency memory buffer
 
 		push cx									; save cx (index) on the stack
@@ -525,10 +541,10 @@ QUERY_AC:
 			loop .movName						; loops back to fill up the name
 
 		pop cx									; index of entry
-		mov ax, 1								; found flag
-
+	
 	.end:
+		pop bx
 		ret
-
+	
 END:
 	jmp $
