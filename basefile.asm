@@ -599,7 +599,7 @@ PRINT_ALL_ENTRIES:
 	.start:
 		push cx				; save state
 	
-		mov cx, 0[LENGTH] 		; get size of DB 
+		mov cx, [LENGTH] 		; get size of DB 
 
 	.while:
 		call COPY_TO_OUTPUT 		; copy DB[CX] to output
