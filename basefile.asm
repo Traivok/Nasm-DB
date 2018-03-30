@@ -540,7 +540,7 @@ COPY_TO_OUTPUT:
 
 		mov bx, cx 						; assigns bx = index of entry
 
-		mov dx, word [COD_AC] 					; move the found Account number to aux reg
+		mov dx, word [COD_AC + bx] 					; move the found Account number to aux reg
 		mov word [IO_AC], dx 					; and move it to IO memory
 	
 		mov edx, dword [CPF + bx]				; moves the found CPF on the position cx to the edx register (intermediary)
@@ -567,6 +567,7 @@ COPY_TO_OUTPUT:
 	
 	.end:
 		pop dx
+		pop bx
 		ret
 
 
@@ -620,14 +621,13 @@ PRINT_ENTRY:
 PRINT_ALL_ENTRIES:
 	.start:
 		push cx				; save state
-	
-		mov cx, [LENGTH] 		; get size of DB 
+		mov cx, 0 			; get size of DB
 
 	.while:
 		call COPY_TO_OUTPUT 		; copy DB[CX] to output
-		;call SAY_HI
-		
+		call SAY_HI
 		call PRINT_ENTRY		; print DB[CX] using output cache
+		inc cx
 		cmp cx, [LENGTH]		; check if all entries was printed
 		jb .while			; while ( |cx| < [LENGTH] )
 
