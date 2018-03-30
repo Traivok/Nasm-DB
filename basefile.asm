@@ -182,15 +182,8 @@ START:
 			lodsb					; reads a character from IO_NAME and saves at AL
 			stosb					; picks the character at al and saves at [NAME + ax]
 			loop .storechar	
-
-		;;; debug
-		;	mov si, TEST_PROMPT
-		;	call printstr
-		;	mov si, NAME
-		;	call printstr
-		;	mov di, BUFF
-		;	call readvstr
 				
+
 		.cpfread:
 			call clearScr       ; fresh screen.
 
@@ -641,7 +634,12 @@ PRINT_ENTRY:
 		call printstr
 		call println
 
+		mov si, cpf_info		; print cpf
+		call printstr
+
 		;; mov ax, [CPF] CPF NEED EAX
+		;; call printstr
+		call println
 
 		mov si, ac_info			; print account
 		call printstr
