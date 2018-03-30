@@ -494,16 +494,17 @@ INIT:
 	ret
 
 ;;; return the index of the last entry that matches with the provider Account
-;; @reg: 	CX, AX, EBX
-;; @param:	BX that contains the Account number
+;; @reg: 	CX, AX, BX, EDX
+;; @param:	DX that contains the Account number
 ;; @ret:	CX will be the index of that element
 ;; @ret:	AX will be 0 if not found, else 1
 ;; @ret: 	IO FIELD will be setted with queried entry, if found
 QUERY_AC:
 	.start:
 		mov cx, LENGTH							; sets the cx register with the current number of entries on the db
+		mov bx, LENGTH							; sets the bx register with the current number of entries on the db		
 	.while:
-		cmp word [COD_AG + cx], bx				; compares the agency code at index cx to see if it matches the provided one
+		cmp word [COD_AG + bx], bx				; compares the agency code at index cx to see if it matches the provided one
 		je .found								; if yes, jump to found
 		loop .while								; else, search again, one position back (since we're searching from the end)
 	.notFound:
@@ -518,20 +519,23 @@ QUERY_AC:
 		ret
 
 ;;; copy an entry of BD to IO cache
-;; @reg: 	CX
+;; @reg: 	EDX, CX, BX
 ;; @param:	CX index of some entry
 COPY_TO_OUTPUT:
 	.start:
-		push bx							; BX will be used as an auxiliar variable
+		push bx							; BX will be used as index register
+		push dx							; DX will be used as an auxiliar variable
 
-		mov bx, word [COD_AC] 					; move the found Account number to aux reg
-		mov word [IO_AC], bx 					; and move it to IO memory
+		mov bx, cx 						; assigns bx = index of entry
+
+		mov dx, word [COD_AC] 					; move the found Account number to aux reg
+		mov word [IO_AC], dx 					; and move it to IO memory
 	
-		mov ebx, dword [CPF + cx]				; moves the found CPF on the position cx to the ebx register (intermediary)
-		mov dword [IO_CPF], ebx					; moves the content of the ebx register to the CPF memory buffer
+		mov edx, dword [CPF + bx]				; moves the found CPF on the position cx to the edx register (intermediary)
+		mov dword [IO_CPF], edx					; moves the content of the edx register to the CPF memory buffer
 		
-		mov bx, word [COD_AG + cx]				; moves the found agency on the position cx to the bx register (intermediary)
-		mov word [IO_AG], bx					; moves the content of the bx register to the agency memory buffer
+		mov dx, word [COD_AG + bx]				; moves the found agency on the position cx to the dx register (intermediary)
+		mov word [IO_AG], dx					; moves the content of the dx register to the agency memory buffer
 
 		push cx									; save cx (index) on the stack
 		mov ax, 20								; sets ax to 20
@@ -539,15 +543,18 @@ COPY_TO_OUTPUT:
 		mov cx, 20								; sets cx back to 20 to navigate on a single name (name buffer)
 
 		.movName:								; IO_NAME[i] = NAME[ (length * 20) - i ] 
-			mov bl, byte [NAME + ax]			; ax contains (length * 20) - i, since NAME is the whole database entries
-			mov byte [IO_NAME + cx], bl			; cx contains i, since IO_NAME only contains one entry
+			push bx								; saves original index on stack
+			mov bx, ax							; moves ax to bx since only bx can be index reg
+			mov bl, byte [NAME + bx]			; bx = ax wich contains (length * 20) - i, since NAME is the whole database entries
+			pop bx								; goes back to original index value (cx)
+			mov byte [IO_NAME + bx], bl			; bx = cx wich contains i, since IO_NAME only contains one entry
 			dec ax								; decrements ax
 			loop .movName						; loops back to fill up the name
 
 		pop cx									; index of entry
 	
 	.end:
-		pop bx
+		pop dx
 		ret
 
 
