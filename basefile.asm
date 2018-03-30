@@ -633,15 +633,24 @@ PRINT_ENTRY:
 		mov si, SEPARATOR 		; print an output separator
 		call printstr
 		call println
-	
+
+		mov si, name_info		; print name
+		call printstr
+
 		mov si, IO_NAME			; print name attribute 
 		call printstr
 		call println
 
 		;; mov ax, [CPF] CPF NEED EAX
 
+		mov si, ac_info			; print account
+		call printstr
+
 		mov ax, [IO_AC]			; print Account attribute
 		call PRINT_NUMBER_FIELD
+
+		mov si, ag_info			; print agency
+		call printstr
 
 		mov ax, [IO_AG]			; finally print Agency attribute
 		call PRINT_NUMBER_FIELD
@@ -656,13 +665,13 @@ PRINT_ENTRY:
 ;; @warning: it will modify BUFF
 PRINT_ALL_ENTRIES:
 	.start:
-		;mov word [LENGTH], 6
+		;mov word [LENGTH], 6 ;debug
 		push cx				; save state
 		mov cx, 0 			; get size of DB
 
 	.while:
 		call COPY_TO_OUTPUT 		; copy DB[CX] to output
-		;call SAY_HI
+		;call SAY_HI	;debug
 		call PRINT_ENTRY		; print DB[CX] using output cache
 		inc cx
 		cmp cx, [LENGTH]		; check if all entries was printed
