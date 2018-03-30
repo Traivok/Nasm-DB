@@ -21,7 +21,8 @@ IO_CPF 			 DD 0  ; for storing client's cpf
 IO_AG			 DW 0  ; for storing client's bank agency
 IO_AC 			 DW 0  ; for storing client's bank account
 BUFF 	TIMES 21 DW 0  ; general purpose keyboard buffer
-SEPARATOR 		DB '-------------------------------------', 0
+SEPARATOR 		 DB '-------------------------------------', 0
+TEST_PROMPT		 DB 'hello world!',	0	
 ;;; END OF IO SECTION
 
 ;;; MAIN MENU OPTIONS
@@ -133,6 +134,13 @@ START:
         cmp dl, 7           ; compares the value read by the keyboard
         je EXIT             ; jumps to the EXIT section
 
+		;;;;;;;;;;;;;;;;;;;;;;;DEV ONLY;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		cmp dl, 8
+		call PRINT_ALL_ENTRIES
+		jmp mainmenu
+		;;;;;;;;;;;;;;;;;;;;;;;DEV ONLY;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
         jmp EXCEPTION       ; if no number from 1 - 7 was provided, jump to EXCEPTION and throw out an error.
 
     popa	    ; get previous state
@@ -218,8 +226,12 @@ START:
 			mov bx, cx
 			mov word [COD_AC + bx], dx
 
+		.updateLen:
+			inc cx
+			mov [LENGTH], cx
 
-        jmp END
+
+        jmp mainmenu
 
     SHOW:
         ; SHOW code goes here
@@ -542,7 +554,7 @@ COPY_TO_OUTPUT:
 		mul cx									; multiplies ax * cx, now [ax = (cx*20)] (since we need to navigate through the whole list of names)
 		mov cx, 20								; sets cx back to 20 to navigate on a single name (name buffer)
 
-		.movName:								; IO_NAME[i] = NAME[ (length * 20) - i ] 
+		.movName:								; IO_NAME[i] = NAME[ (length * 20) - i ] 		
 			push bx								; saves original index on stack
 			mov bx, ax							; moves ax to bx since only bx can be index reg
 			mov bl, byte [NAME + bx]			; bx = ax wich contains (length * 20) - i, since NAME is the whole database entries
@@ -550,7 +562,7 @@ COPY_TO_OUTPUT:
 			mov byte [IO_NAME + bx], bl			; bx = cx wich contains i, since IO_NAME only contains one entry
 			dec ax								; decrements ax
 			loop .movName						; loops back to fill up the name
-
+		
 		pop cx									; index of entry
 	
 	.end:
@@ -613,12 +625,23 @@ PRINT_ALL_ENTRIES:
 
 	.while:
 		call COPY_TO_OUTPUT 		; copy DB[CX] to output
+		;call SAY_HI
+		
 		call PRINT_ENTRY		; print DB[CX] using output cache
 		cmp cx, [LENGTH]		; check if all entries was printed
 		jb .while			; while ( |cx| < [LENGTH] )
-	.end
+
+	.end:
 		pop cx				; load previous cx
 		ret
-	
+
+;;; Debugging purposes
+SAY_HI:
+	mov si, TEST_PROMPT       ; printstr uses si as parameter
+    call printstr       ; call it
+	ret
+
+
 END:
 	jmp $
+
