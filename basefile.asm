@@ -45,6 +45,13 @@ prompt3		DB ' Please type the Agency of the new account '	, 0
 prompt4		DB ' Please type the Code of the new account '		, 0
 ;;; END OF CREATE OPTIONS
 
+;;; OUTPUT MESSAGES
+name_info	DB ' Client Name: '									, 0
+cpf_info	DB ' Client CPF: '									, 0
+ag_info		DB ' Client Agency: '								, 0
+ac_info		DB ' Client Account: '								, 0
+;;; END OF OUTPUT MESSAGES
+
 ;%macro 
 	;TODO MACRO MEM-T0-MEM
 ;%endmacro
@@ -62,7 +69,10 @@ START:
 
     ;; Print main menu routine.
     mainmenu:
-        call clearScr       ; First things first, let's start with a fresh screen.
+        ;call clearScr       ; First things first, let's start with a fresh screen.
+		mov si, SEPARATOR
+		call printstr
+		call println
 
         mov si, title       ; printstr uses si as parameter
         call printstr       ; call it
@@ -147,7 +157,7 @@ START:
 
 	CREATE:
 		.start:
-			mov cx, LENGTH
+			mov cx, [LENGTH]
 
 		.nameread:
 			call clearScr       ; fresh screen.
@@ -172,6 +182,14 @@ START:
 			lodsb					; reads a character from IO_NAME and saves at AL
 			stosb					; picks the character at al and saves at [NAME + ax]
 			loop .storechar	
+
+		;;; debug
+		;	mov si, TEST_PROMPT
+		;	call printstr
+		;	mov si, NAME
+		;	call printstr
+		;	mov di, BUFF
+		;	call readvstr
 				
 		.cpfread:
 			call clearScr       ; fresh screen.
@@ -227,9 +245,10 @@ START:
 			mov word [COD_AC + bx], dx
 
 		.updateLen:
-			inc cx
-			mov [LENGTH], cx
-
+			inc word [LENGTH]
+		
+		.resetFlag:
+			mov byte [GET_ALL_AGENCIES], 1
 
         jmp mainmenu
 
@@ -531,7 +550,7 @@ QUERY_AC:
 		ret
 
 ;;; copy an entry of BD to IO cache
-;; @reg: 	CX
+;; @reg: 	AX*, CX
 ;; @param:	CX index of some entry
 COPY_TO_OUTPUT:
 	.start:
@@ -554,14 +573,29 @@ COPY_TO_OUTPUT:
 		mul cx									; multiplies ax * cx, now [ax = (cx*20)] (since we need to navigate through the whole list of names)
 		mov cx, 20								; sets cx back to 20 to navigate on a single name (name buffer)
 
-		.movName:								; IO_NAME[i] = NAME[ (length * 20) - i ] 		
+		.prepareToMove:
+			mov di, IO_NAME
 			push bx								; saves original index on stack
 			mov bx, ax							; moves ax to bx since only bx can be index reg
-			mov bl, byte [NAME + bx]			; bx = ax wich contains (length * 20) - i, since NAME is the whole database entries
+			lea si, [NAME + bx]					; bx = ax wich contains (length * 20) - i, since NAME is the whole database entries
 			pop bx								; goes back to original index value (cx)
-			mov byte [IO_NAME + bx], bl			; bx = cx wich contains i, since IO_NAME only contains one entry
-			dec ax								; decrements ax
-			loop .movName						; loops back to fill up the name
+
+		.movName:										 					
+			movsb 
+			loop .movName	
+												; IO_NAME[i] = NAME[ (length * 20) - i ] 
+		;	push bx								
+		;	mov bx, ax							
+		;	mov bl, byte [NAME + bx]			;
+		;	pop bx								
+		;	mov byte [IO_NAME + bx], bl			; bx = cx wich contains i, since IO_NAME only contains one entry
+		;	dec ax								; decrements ax
+		;	loop .movName						; loops back to fill up the name
+		
+		;mov si, IO_NAME
+		;call printstr
+		;mov di, BUFF
+		;call readvstr
 		
 		pop cx									; index of entry
 	
@@ -597,6 +631,8 @@ PRINT_ENTRY:
 		push ax
 
 		mov si, SEPARATOR 		; print an output separator
+		call printstr
+		call println
 	
 		mov si, IO_NAME			; print name attribute 
 		call printstr
@@ -620,12 +656,13 @@ PRINT_ENTRY:
 ;; @warning: it will modify BUFF
 PRINT_ALL_ENTRIES:
 	.start:
+		;mov word [LENGTH], 6
 		push cx				; save state
 		mov cx, 0 			; get size of DB
 
 	.while:
 		call COPY_TO_OUTPUT 		; copy DB[CX] to output
-		call SAY_HI
+		;call SAY_HI
 		call PRINT_ENTRY		; print DB[CX] using output cache
 		inc cx
 		cmp cx, [LENGTH]		; check if all entries was printed
