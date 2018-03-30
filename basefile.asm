@@ -531,12 +531,12 @@ QUERY_AC:
 		ret
 
 ;;; copy an entry of BD to IO cache
-;; @reg: 	EDX, CX, BX
+;; @reg: 	CX
 ;; @param:	CX index of some entry
 COPY_TO_OUTPUT:
 	.start:
+		push edx						; DX will be used as an auxiliar variable
 		push bx							; BX will be used as index register
-		push dx							; DX will be used as an auxiliar variable
 
 		mov bx, cx 						; assigns bx = index of entry
 
@@ -566,8 +566,8 @@ COPY_TO_OUTPUT:
 		pop cx									; index of entry
 	
 	.end:
-		pop dx
 		pop bx
+		pop edx
 		ret
 
 
