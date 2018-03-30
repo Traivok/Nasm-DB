@@ -137,7 +137,7 @@ start:
 
     popa	    ; get previous state
 
-    CREATE:
+	CREATE:
 		.start:
 			mov cx, LENGTH
 
@@ -157,14 +157,14 @@ start:
 			mul cx				; multiplies ax * cx, now [ax = (cx*20)] (since we need to navigate through the whole list of names)
 
 			mov cx, 20 					; sets cx to 20 so we can iterate
-			mov di, [NAME + ax]			; points destination index to the start of the first empty name space 					
-			.storechar:
-				lodsb					; reads a character from IO_NAME and saves at AL
-				stosb					; picks the character at al and saves at [NAME + ax]
-				loop .storechar
-		
-				
+			mov di, NAME					
+			add di, ax					; points destination index to the start of the first empty name space 
 
+		.storechar:
+			lodsb					; reads a character from IO_NAME and saves at AL
+			stosb					; picks the character at al and saves at [NAME + ax]
+			loop .storechar	
+				
 		.cpfread:
 			call clearScr       ; fresh screen.
 
@@ -180,7 +180,8 @@ start:
 			call atoi           ; converts user input to integer number and saves at dl
 
 		.cpfstore:
-			mov dword [IO_CPF + cx], edx
+			mov bx, cx
+			mov dword [IO_CPF + bx], edx
 
 		.agencyread:
 			call clearScr       ; fresh screen.
@@ -195,8 +196,10 @@ start:
 			xor edx, edx
 
 			call atoi           ; converts user input to integer number and saves at dl
+
 		.agencystore:
-			mov word [COD_AG + cx], dx
+			mov bx, cx
+			mov word [COD_AG + bx], dx
 
 		.accountread:
 			call clearScr       ; fresh screen.
@@ -212,8 +215,8 @@ start:
 
 			call atoi           ; converts user input to integer number and saves at dl
 		.accountstore:
-			mov word [COD_AC + cx], dx
-			
+			mov bx, cx
+			mov word [COD_AC + bx], dx
 
 
         jmp END
