@@ -48,7 +48,7 @@ prompt4		DB ' Please type the Code of the new account '		, 0
 	;TODO MACRO MEM-T0-MEM
 ;%endmacro
 
-start:
+START:
     xor ax, ax  ; zera ax
     mov ds, ax  ; zera ds
     mov es, ax  ; zera es
@@ -565,7 +565,7 @@ COPY_TO_OUTPUT:
 ;;;-----------------------------TO DO, MODIFY TOSTRING TO USE EAX AS INPUT---------------------;;;
 PRINT_NUMBER_FIELD:	
 
-	mov BUFF, di		; BUFF will be the string d
+	mov di, BUFF		; BUFF will be the string d
 	call tostring		; transform AX to string
 	
 	mov si, BUFF		; use BUFF as printstr parameter
@@ -583,7 +583,7 @@ PRINT_ENTRY:
 		push di
 		push ax
 
-		mov si, separator 		; print an output separator
+		mov si, SEPARATOR 		; print an output separator
 	
 		mov si, IO_NAME			; print name attribute 
 		call printstr
