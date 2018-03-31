@@ -3,26 +3,32 @@ jmp 0x0000:START
 
 ;;; BEGIN OF ARRAY SECTION
 CAPACITY EQU 6
-NAME 	 TIMES CAPACITY * 20 DB 0 	; array of 20 characters by item
-CPF 	 TIMES CAPACITY 	 DD 0	; all above will use double word integer
-COD_AG 	 TIMES CAPACITY 	 DW 0
-COD_AC 	 TIMES CAPACITY 	 DW 1
-LENGTH 	 					 DW 0	; the current of size of DB starts empty
+
+NAME_LEN EQU 20
+CPF_LEN  EQU 11 
+AG_LEN   EQU 05
+AC_LEN   EQU 06
+	
+NAME 	 TIMES CAPACITY * NAME_LEN	DB 0 	; array of 20 characters by item
+CPF 	 TIMES CAPACITY * CPF_LEN	DB 0	; all above will use double word integer
+COD_AG 	 TIMES CAPACITY * AG_LEN	DB 0
+COD_AC 	 TIMES CAPACITY * AC_LEN	DB 1
+LENGTH 	 				DW 0	; the current of size of DB starts empty
 ;;; END OF ARRAY SECTION
 
 ;;; BEGIN OF FLAGS SECTION
-GET_ALL_AGENCIES 				DB 0  ; when an update/create/remove of agency number, be called, set to 1
-AGENCIES 	TIMES CAPACITY 		DW 1  ; all unique agencies of this DB
+GET_ALL_AGENCIES 			DB 0  ; when an update/create/remove of agency number, be called, set to 1
+AGENCIES TIMES CAPACITY * AG_LEN 	DB 1  ; all unique agencies of this DB
 ;;; END OF FLAGS SECTION
 
 ;;; BEGIN OF IO SECTION
-IO_NAME TIMES 21 DB 0  ; for storing client's username
-IO_CPF 			 DD 0  ; for storing client's cpf
-IO_AG			 DW 0  ; for storing client's bank agency
-IO_AC 			 DW 0  ; for storing client's bank account
-BUFF 	TIMES 21 DW 0  ; general purpose keyboard buffer
-SEPARATOR 		 DB '-------------------------------------', 0
-TEST_PROMPT		 DB 'hello world!',	0	
+IO_NAME TIMES NAME_LEN + 1 DB 0  ; for storing client's username
+IO_CPF 	TIMES CPF_LEN  + 1 DB 0  ; for storing client's cpf
+IO_AG	TIMES AG_LEN   + 1 DB 0  ; for storing client's bank agency
+IO_AC 	TIMES AC_LEN   + 1 DB 0  ; for storing client's bank account
+BUFF 	TIMES 32 	   DB 0  ; general purpose keyboard buffer
+SEPARATOR 		   DB '-------------------------------------', 0
+TEST_PROMPT		   DB 'hello world!',	0	
 ;;; END OF IO SECTION
 
 ;;; MAIN MENU OPTIONS
