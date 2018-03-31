@@ -14,21 +14,24 @@ CPF 	 TIMES CAPACITY * CPF_LEN	DB 0	; all above will use double word integer
 COD_AG 	 TIMES CAPACITY * AG_LEN	DB 0
 COD_AC 	 TIMES CAPACITY * AC_LEN	DB 1
 LENGTH 	 				DW 0	; the current of size of DB starts empty
+
+AGENCIES TIMES CAPACITY * AG_LEN 	DB 1  ; all unique agencies of this DB
+AGENCIES_ARRAY_LEN			DW 0  ; lenght of AGENCIES array
 ;;; END OF ARRAY SECTION
 
 ;;; BEGIN OF FLAGS SECTION
 GET_ALL_AGENCIES 			DB 0  ; when an update/create/remove of agency number, be called, set to 1
-AGENCIES TIMES CAPACITY * AG_LEN 	DB 1  ; all unique agencies of this DB
 ;;; END OF FLAGS SECTION
 
 ;;; BEGIN OF IO SECTION
-IO_NAME TIMES NAME_LEN + 1 DB 0  ; for storing client's username
-IO_CPF 	TIMES CPF_LEN  + 1 DB 0  ; for storing client's cpf
-IO_AG	TIMES AG_LEN   + 1 DB 0  ; for storing client's bank agency
-IO_AC 	TIMES AC_LEN   + 1 DB 0  ; for storing client's bank account
-BUFF 	TIMES 32 	   	   DB 0  ; general purpose keyboard buffer
-SEPARATOR 		   DB '-------------------------------------', 0
-TEST_PROMPT		   DB 'hello world!',	0	
+IO_NAME  TIMES NAME_LEN + 1 DB 0  ; for storing client's username
+IO_CPF 	 TIMES CPF_LEN  + 1 DB 0  ; for storing client's cpf
+IO_AG	 TIMES AG_LEN   + 1 DB 0  ; for storing client's bank agency
+IO_AC 	 TIMES AC_LEN   + 1 DB 0  ; for storing client's bank account
+BUFF 	 TIMES 32     	    DB 0  ; general purpose keyboard buffer
+AG_QUERY TIMES 32	    DB 0  ; agency number query goes here
+SEPARATOR 		    DB '-------------------------------------', 0
+TEST_PROMPT		    DB 'hello world!',	0	
 ;;; END OF IO SECTION
 
 ;;; MAIN MENU OPTIONS
@@ -52,10 +55,11 @@ prompt4		DB ' Please type the Code of the new account '		, 0
 ;;; END OF CREATE OPTIONS
 
 ;;; OUTPUT MESSAGES
-name_info	DB ' Client Name: '									, 0
-cpf_info	DB ' Client CPF: '									, 0
-ag_info		DB ' Client Agency: '								, 0
-ac_info		DB ' Client Account: '								, 0
+name_info	 DB ' Client Name: '								, 0
+cpf_info	 DB ' Client CPF: '								, 0
+ag_info		 DB ' Client Agency: '								, 0
+ac_info	 	 DB ' Client Account: '								, 0
+agency_query_msg DB ' Insert an Agency Code: '							, 0
 ;;; END OF OUTPUT MESSAGES
 
 ;%macro 
@@ -284,8 +288,17 @@ START:
         jmp END
     
     LISTACCOUNTS:
-        ; list accounts code goes here
-        jmp END
+	; list accounts code goes here
+	mov si, agency_query_msg
+	call printstr
+	
+	mov di, AG_QUERY
+	call readvstr
+
+	mov si, AG_QUERY
+	call LIST_BY_AGENCY
+	
+	jmp mainmenu
 
     EXIT:
         ; bye
@@ -565,13 +578,12 @@ QUERY_AC:
 		ret
 
 ;;; copy an entry of BD to IO cache
-;; @reg: 	AX*, CX
+;; @reg: 	CX
 ;; @param:	CX index of some entry
 COPY_TO_OUTPUT:
 	.start:
 		;push edx						; DX will be used as an auxiliar variable
 		;push bx							; BX will be used as index register
-
 		;mov bx, cx 						; assigns bx = index of entry
 
 		;mov dx, word [COD_AC + bx] 					; move the found Account number to aux reg
@@ -583,7 +595,7 @@ COPY_TO_OUTPUT:
 		;mov dx, word [COD_AG + bx]				; moves the found agency on the position cx to the dx register (intermediary)
 		;mov word [IO_AG], dx					; moves the content of the dx register to the agency memory buffer
 
-		
+		pusha
 
 		.prepareToMoveName:
 			push cx									; save cx (index) on the stack
@@ -664,7 +676,8 @@ COPY_TO_OUTPUT:
 	
 	.end:
 		;pop bx
-		;pop edx
+				;pop edx
+		popa
 		ret
 
 
@@ -754,12 +767,68 @@ PRINT_ALL_ENTRIES:
 		pop cx				; load previous cx
 		ret
 
+;;; print all accounts given some agency
+;; @param: SI Agency number 
+LIST_BY_AGENCY:
+	.start:
+		pusha
+		mov cx, 0
+		
+	.findAddress:
+		
+		mov ax, AG_LEN		; set ax to reserved size of ag length
+		mul cx			; multiplies it by index
+		mov bx, ax		; base mode only works with BX
+
+		lea di, [COD_AG + bx]	; load effective address of entry	
+	
+	.cmpWithSource:
+		push cx			; save state, cx will be used as counter in REPE
+		push si			; si will be change in REPE
+	
+		mov cx, AG_LEN	; check AG_LEN amount of characters
+
+		.while:
+			cmpsb		   	; cmp DI[i] with SI[i]
+			jne .checkEquality 	; if DI[i] != SI[i], break this loop 
+			loop .while
+	
+		.checkEquality:
+	
+			mov bx, cx		; cx is used as DB index 
+
+			pop si			; return to previous state
+			pop cx
+
+			cmp bx, 0		; check if all chars are equal
+			jne .checkRange		; if not, check if db reach to its end
+
+	.found:				; else, print account founded
+		pusha
+		call COPY_TO_OUTPUT	; copy that entry to OUTPUT cache
+		call PRINT_ENTRY	; and print that	
+		mov di, BUFF
+		call readstr
+		popa
+	
+	.checkRange:
+		inc cx
+		cmp cx, [LENGTH]
+
+		je .end			; if db reached to its end, return
+
+		jmp .findAddress	; else, test another entry
+	
+	.end:
+		popa
+		ret
+
 ;;; Store string from si at memory position pointed by di
 ;; @reg: cx, where cx is string size
 STORESTRING:
 	.start:
-		lodsb				; reads a character from IO_NAME and saves at AL
-		stosb				; picks the character at al and saves at [NAME + ax]
+		lodsb				; reads a character from SI and saves at AL
+		stosb				; picks the character at AL and saves at DI
 		loop .start
 	ret
 
