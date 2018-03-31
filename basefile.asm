@@ -165,6 +165,7 @@ START:
 		.start:
 			mov cx, [LENGTH]
 
+		push cx
 		.nameread:
 			call clearScr       ; fresh screen.
 
@@ -185,7 +186,9 @@ START:
 			add di, ax			; points destination index to the start of the first empty name space 
 			
 			call STORESTRING
+		pop cx
 
+		push cx
 		.cpfread:
 			call clearScr       ; fresh screen.
 
@@ -206,7 +209,9 @@ START:
 			add di, ax			; points destination index to the start of the first empty cpf space 
 			
 			call STORESTRING
+		pop cx
 
+		push cx
 		.agencyread:
 			call clearScr       ; fresh screen.
 
@@ -228,7 +233,9 @@ START:
 			add di, ax			; points destination index to the start of the first empty cpf space 
 			
 			call STORESTRING
+		pop cx
 
+		push cx
 		.accountread:
 			call clearScr       ; fresh screen.
 
@@ -250,7 +257,7 @@ START:
 			add di, ax			; points destination index to the start of the first empty cpf space 
 			
 			call STORESTRING
-
+		pop cx
 
 		.updateLen:
 			inc word [LENGTH]
