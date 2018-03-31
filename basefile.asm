@@ -562,35 +562,83 @@ QUERY_AC:
 ;; @param:	CX index of some entry
 COPY_TO_OUTPUT:
 	.start:
-		push edx						; DX will be used as an auxiliar variable
-		push bx							; BX will be used as index register
+		;push edx						; DX will be used as an auxiliar variable
+		;push bx							; BX will be used as index register
 
-		mov bx, cx 						; assigns bx = index of entry
+		;mov bx, cx 						; assigns bx = index of entry
 
-		mov dx, word [COD_AC + bx] 					; move the found Account number to aux reg
-		mov word [IO_AC], dx 					; and move it to IO memory
+		;mov dx, word [COD_AC + bx] 					; move the found Account number to aux reg
+		;mov word [IO_AC], dx 					; and move it to IO memory
 	
-		mov edx, dword [CPF + bx]				; moves the found CPF on the position cx to the edx register (intermediary)
-		mov dword [IO_CPF], edx					; moves the content of the edx register to the CPF memory buffer
+		;mov edx, dword [CPF + bx]				; moves the found CPF on the position cx to the edx register (intermediary)
+		;mov dword [IO_CPF], edx					; moves the content of the edx register to the CPF memory buffer
 		
-		mov dx, word [COD_AG + bx]				; moves the found agency on the position cx to the dx register (intermediary)
-		mov word [IO_AG], dx					; moves the content of the dx register to the agency memory buffer
+		;mov dx, word [COD_AG + bx]				; moves the found agency on the position cx to the dx register (intermediary)
+		;mov word [IO_AG], dx					; moves the content of the dx register to the agency memory buffer
 
-		push cx									; save cx (index) on the stack
-		mov ax, 20								; sets ax to 20
-		mul cx									; multiplies ax * cx, now [ax = (cx*20)] (since we need to navigate through the whole list of names)
-		mov cx, 20								; sets cx back to 20 to navigate on a single name (name buffer)
+		
 
-		.prepareToMove:
+		.prepareToMoveName:
+			push cx									; save cx (index) on the stack
+			mov ax, NAME_LEN								; sets ax to 20
+			mul cx									; multiplies ax * cx, now [ax = (cx*20)] (since we need to navigate through the whole list of names)
+			mov cx, NAME_LEN								; sets cx back to 20 to navigate on a single name (name buffer)
 			mov di, IO_NAME
 			push bx								; saves original index on stack
 			mov bx, ax							; moves ax to bx since only bx can be index reg
 			lea si, [NAME + bx]					; bx = ax wich contains (length * 20) - i, since NAME is the whole database entries
 			pop bx								; goes back to original index value (cx)
-
 		.movName:										 					
 			movsb 
 			loop .movName	
+			pop cx									; cx = index of entry
+		
+
+		.prepareToMoveCPF:
+			push cx									; save cx (index) on the stack
+			mov ax, CPF_LEN								; sets ax to 20
+			mul cx									; multiplies ax * cx, now [ax = (cx*20)] (since we need to navigate through the whole list of CPFs)
+			mov cx, CPF_LEN								; sets cx back to 20 to navigate on a single CPF (CPF buffer)
+			mov di, IO_CPF
+			push bx								; saves original index on stack
+			mov bx, ax							; moves ax to bx since only bx can be index reg
+			lea si, [CPF + bx]					; bx = ax wich contains (length * 20) - i, since CPF is the whole database entries
+			pop bx								; goes back to original index value (cx)
+		.movCPF:										 					
+			movsb 
+			loop .movCPF	
+			pop cx									; cx = index of entry
+		
+		.prepareToMoveAC:
+			push cx									; save cx (index) on the stack
+			mov ax, AC_LEN								; sets ax to 20
+			mul cx									; multiplies ax * cx, now [ax = (cx*20)] (since we need to navigate through the whole list of ACs)
+			mov cx, AC_LEN								; sets cx back to 20 to navigate on a single AC (AC buffer)
+			mov di, IO_AC
+			push bx								; saves original index on stack
+			mov bx, ax							; moves ax to bx since only bx can be index reg
+			lea si, [COD_AC + bx]					; bx = ax wich contains (length * 20) - i, since AC is the whole database entries
+			pop bx								; goes back to original index value (cx)
+		.movAC:										 					
+			movsb 
+			loop .movAC	
+			pop cx
+		
+		.prepareToMoveAG:
+			push cx									; save cx (index) on the stAGk
+			mov ax, AG_LEN								; sets ax to 20
+			mul cx									; multiplies ax * cx, now [ax = (cx*20)] (since we need to navigate through the whole list of AGs)
+			mov cx, AG_LEN								; sets cx bAGk to 20 to navigate on a single AG (AG buffer)
+			mov di, IO_AG
+			push bx								; saves original index on stAGk
+			mov bx, ax							; moves ax to bx since only bx can be index reg
+			lea si, [COD_AG + bx]					; bx = ax wich contains (length * 20) - i, since AG is the whole database entries
+			pop bx								; goes bAGk to original index value (cx)
+		.movAG:										 					
+			movsb 
+			loop .movAG	
+			pop cx
+
 												; IO_NAME[i] = NAME[ (length * 20) - i ] 
 		;	push bx								
 		;	mov bx, ax							
@@ -605,11 +653,11 @@ COPY_TO_OUTPUT:
 		;mov di, BUFF
 		;call readvstr
 		
-		pop cx									; index of entry
+	
 	
 	.end:
-		pop bx
-		pop edx
+		;pop bx
+		;pop edx
 		ret
 
 
@@ -642,31 +690,33 @@ PRINT_ENTRY:
 		call printstr
 		call println
 
-		mov si, name_info		; print name
+		mov si, name_info		; print name info for user
 		call printstr
 
 		mov si, IO_NAME			; print name attribute 
 		call printstr
 		call println
 
-		mov si, cpf_info		; print cpf
+		mov si, cpf_info		; print cpf  info for user
 		call printstr
 
-		;; mov ax, [CPF] CPF NEED EAX
-		;; call printstr
+		mov si, IO_CPF			;print CPF attribute
+		call printstr
 		call println
 
-		mov si, ac_info			; print account
+		mov si, ac_info			; print account  info for user
 		call printstr
 
-		mov ax, [IO_AC]			; print Account attribute
-		call PRINT_NUMBER_FIELD
+		mov si, IO_AC			; print Account attribute
+		call printstr
+		call println
 
-		mov si, ag_info			; print agency
+		mov si, ag_info			; print agency info for user
 		call printstr
 
-		mov ax, [IO_AG]			; finally print Agency attribute
-		call PRINT_NUMBER_FIELD
+		mov si, IO_AG			; finally print Agency attribute
+		call printstr
+		call println
 	
 	.end:
 		pop ax				; return to the previous state
@@ -686,6 +736,9 @@ PRINT_ALL_ENTRIES:
 		call COPY_TO_OUTPUT 		; copy DB[CX] to output
 		;call SAY_HI	;debug
 		call PRINT_ENTRY		; print DB[CX] using output cache
+		push di
+		call readvstr
+		pop di
 		inc cx
 		cmp cx, [LENGTH]		; check if all entries was printed
 		jb .while			; while ( |cx| < [LENGTH] )
