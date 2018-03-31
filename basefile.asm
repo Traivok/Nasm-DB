@@ -4,15 +4,15 @@ jmp 0x0000:START
 ;;; BEGIN OF ARRAY SECTION
 CAPACITY EQU 6
 
-NAME_LEN EQU 20 + 1
-CPF_LEN  EQU 11 + 1
-AG_LEN   EQU 05 + 1
-AC_LEN   EQU 06 + 1
+NAME_LEN EQU 20
+CPF_LEN  EQU 11
+AG_LEN   EQU 05
+AC_LEN   EQU 06
 	
-NAME 	 TIMES CAPACITY * NAME_LEN	DB 0 	; array of 20 characters by item
-CPF 	 TIMES CAPACITY * CPF_LEN	DB 0	; all above will use double word integer
-COD_AG 	 TIMES CAPACITY * AG_LEN	DB 0
-COD_AC 	 TIMES CAPACITY * AC_LEN	DB 1
+NAME 	 TIMES CAPACITY * (NAME_LEN + 1)	DB 0 	; array of 20 characters by item
+CPF 	 TIMES CAPACITY * (CPF_LEN  + 1)	DB 0	; all above will use double word integer
+COD_AG 	 TIMES CAPACITY * (AG_LEN   + 1)	DB 0
+COD_AC 	 TIMES CAPACITY * (AC_LEN   + 1)	DB 0
 LENGTH 	 				DW 0	; the current of size of DB starts empty
 
 AGENCIES TIMES CAPACITY * AG_LEN 	DB 1  ; all unique agencies of this DB
@@ -836,7 +836,10 @@ STORESTRING:
 		lodsb				; reads a character from SI and saves at AL
 		stosb				; picks the character at AL and saves at DI
 		loop .start
-	ret
+	.end:
+		mov al, 0
+		stosb
+		ret
 
 ;;; Debugging purposes
 SAY_HI:
