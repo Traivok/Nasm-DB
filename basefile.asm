@@ -4,10 +4,10 @@ jmp 0x0000:START
 ;;; BEGIN OF ARRAY SECTION
 CAPACITY EQU 6
 
-NAME_LEN EQU 20
-CPF_LEN  EQU 11 
-AG_LEN   EQU 05
-AC_LEN   EQU 06
+NAME_LEN EQU 20 + 1
+CPF_LEN  EQU 11 + 1
+AG_LEN   EQU 05 + 1
+AC_LEN   EQU 06 + 1
 	
 NAME 	 TIMES CAPACITY * NAME_LEN	DB 0 	; array of 20 characters by item
 CPF 	 TIMES CAPACITY * CPF_LEN	DB 0	; all above will use double word integer
@@ -611,7 +611,7 @@ COPY_TO_OUTPUT:
 			movsb 
 			loop .movName	
 			pop cx									; cx = index of entry
-		
+			call .appendEndOFString			
 
 		.prepareToMoveCPF:
 			push cx									; save cx (index) on the stack
@@ -627,7 +627,8 @@ COPY_TO_OUTPUT:
 			movsb 
 			loop .movCPF	
 			pop cx									; cx = index of entry
-		
+			call .appendEndOFString			
+	
 		.prepareToMoveAC:
 			push cx									; save cx (index) on the stack
 			mov ax, AC_LEN								; sets ax to 20
@@ -642,7 +643,8 @@ COPY_TO_OUTPUT:
 			movsb 
 			loop .movAC	
 			pop cx
-		
+			call .appendEndOFString			
+	
 		.prepareToMoveAG:
 			push cx									; save cx (index) on the stAGk
 			mov ax, AG_LEN								; sets ax to 20
@@ -657,7 +659,7 @@ COPY_TO_OUTPUT:
 			movsb 
 			loop .movAG	
 			pop cx
-
+			call .appendEndOFString			
 												; IO_NAME[i] = NAME[ (length * 20) - i ] 
 		;	push bx								
 		;	mov bx, ax							
@@ -670,8 +672,7 @@ COPY_TO_OUTPUT:
 		;mov si, IO_NAME
 		;call printstr
 		;mov di, BUFF
-		;call readvstr
-		
+		;call readvstr	
 	
 	
 	.end:
@@ -679,8 +680,13 @@ COPY_TO_OUTPUT:
 				;pop edx
 		popa
 		ret
-
-
+	.appendEndOFString:
+		push ax
+		mov ah, 0
+		stosb
+		pop ax
+		ret
+	
 ;;; transform number into string and print it
 ;; @reg: AX SI DI
 ;; @param: AX output NUMBER to parse
@@ -786,7 +792,7 @@ LIST_BY_AGENCY:
 		push cx			; save state, cx will be used as counter in REPE
 		push si			; si will be change in REPE
 	
-		mov cx, AG_LEN	; check AG_LEN amount of characters
+		mov cx, AG_LEN		; check AG_LEN amount of characters
 
 		.while:
 			cmpsb		   	; cmp DI[i] with SI[i]

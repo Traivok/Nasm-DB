@@ -33,7 +33,7 @@ write_main:
 
 launch_qemu:
 	clear
-	@qemu-system-i386 $(qemu_flags) $(boot_disk)
+	@qemu-system-x86_64 $(qemu_flags) $(boot_disk)
 
 clean:
 	@rm -f *.bin $(boot_disk) *~
