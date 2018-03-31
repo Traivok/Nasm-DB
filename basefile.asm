@@ -26,7 +26,7 @@ IO_NAME TIMES NAME_LEN + 1 DB 0  ; for storing client's username
 IO_CPF 	TIMES CPF_LEN  + 1 DB 0  ; for storing client's cpf
 IO_AG	TIMES AG_LEN   + 1 DB 0  ; for storing client's bank agency
 IO_AC 	TIMES AC_LEN   + 1 DB 0  ; for storing client's bank account
-BUFF 	TIMES 32 	   DB 0  ; general purpose keyboard buffer
+BUFF 	TIMES 32 	   	   DB 0  ; general purpose keyboard buffer
 SEPARATOR 		   DB '-------------------------------------', 0
 TEST_PROMPT		   DB 'hello world!',	0	
 ;;; END OF IO SECTION
@@ -177,18 +177,14 @@ START:
 		.namestore:
 			mov si, IO_NAME		; points the source to IO_NAME
 
-			mov ax, 20			; sets ax to 20
+			mov ax, NAME_LEN	; sets ax to 20
 			mul cx				; multiplies ax * cx, now [ax = (cx*20)] (since we need to navigate through the whole list of names)
 
-			mov cx, 20 					; sets cx to 20 so we can iterate
+			mov cx, NAME_LEN 	; sets cx to 20 so we can iterate
 			mov di, NAME					
-			add di, ax					; points destination index to the start of the first empty name space 
-
-		.storechar:
-			lodsb					; reads a character from IO_NAME and saves at AL
-			stosb					; picks the character at al and saves at [NAME + ax]
-			loop .storechar	
-				
+			add di, ax			; points destination index to the start of the first empty name space 
+			
+			call STORESTRING
 
 		.cpfread:
 			call clearScr       ; fresh screen.
@@ -197,16 +193,19 @@ START:
 			call printstr       ; call it
 			call println        ; print a line break
 
-			mov di, BUFF		; Points to BUFF memory
+			mov di, IO_CPF		; Points to BUFF memory
 			call readvstr		; read string to that memory position
-
-			xor edx, edx		; puts zero on edx to make sure that (value at dl == value at edx)
-
-			call atoi           ; converts user input to integer number and saves at dl
-
 		.cpfstore:
-			mov bx, cx
-			mov dword [IO_CPF + bx], edx
+			mov si, IO_CPF		; points the source to IO_CPF
+
+			mov ax, CPF_LEN		; sets ax to 11
+			mul cx				; multiplies ax * cx, now [ax = (cx*11)] (since we need to navigate through the whole list of names)
+
+			mov cx, CPF_LEN 	; sets cx to 11 so we can iterate
+			mov di, CPF					
+			add di, ax			; points destination index to the start of the first empty cpf space 
+			
+			call STORESTRING
 
 		.agencyread:
 			call clearScr       ; fresh screen.
@@ -215,16 +214,20 @@ START:
 			call printstr       ; call it
 			call println        ; print a line break
 
-			mov di, BUFF		; Points to BUFF memory
+			mov di, IO_AG		; Points to BUFF memory
 			call readvstr		; read string to that memory position
 
-			xor edx, edx
-
-			call atoi           ; converts user input to integer number and saves at dl
-
 		.agencystore:
-			mov bx, cx
-			mov word [COD_AG + bx], dx
+			mov si, IO_AG		; points the source to IO_AG
+
+			mov ax, AG_LEN		; sets ax to 11
+			mul cx				; multiplies ax * cx, now [ax = (cx*11)] (since we need to navigate through the whole list of names)
+
+			mov cx, AG_LEN 		; sets cx to 11 so we can iterate
+			mov di, COD_AG					
+			add di, ax			; points destination index to the start of the first empty cpf space 
+			
+			call STORESTRING
 
 		.accountread:
 			call clearScr       ; fresh screen.
@@ -233,15 +236,21 @@ START:
 			call printstr       ; call it
 			call println        ; print a line break
 
-			mov di, BUFF		; Points to BUFF memory
+			mov di, IO_AC		; Points to BUFF memory
 			call readvstr		; read string to that memory position
 
-			xor edx, edx
-
-			call atoi           ; converts user input to integer number and saves at dl
 		.accountstore:
-			mov bx, cx
-			mov word [COD_AC + bx], dx
+			mov si, IO_AC		; points the source to IO_AC
+
+			mov ax, AC_LEN		; sets ax to 11
+			mul cx				; multiplies ax * cx, now [ax = (cx*11)] (since we need to navigate through the whole list of names)
+
+			mov cx, AC_LEN 		; sets cx to 11 so we can iterate
+			mov di, COD_AC					
+			add di, ax			; points destination index to the start of the first empty cpf space 
+			
+			call STORESTRING
+
 
 		.updateLen:
 			inc word [LENGTH]
@@ -684,6 +693,15 @@ PRINT_ALL_ENTRIES:
 	.end:
 		pop cx				; load previous cx
 		ret
+
+;;; Store string from si at memory position pointed by di
+;; @reg: cx, where cx is string size
+STORESTRING:
+	.start:
+		lodsb				; reads a character from IO_NAME and saves at AL
+		stosb				; picks the character at al and saves at [NAME + ax]
+		loop .start
+	ret
 
 ;;; Debugging purposes
 SAY_HI:
