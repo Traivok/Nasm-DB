@@ -11,3 +11,7 @@ On your terminal, run:
 ### For compiling and emulatings
 ` $ nasm -f bin FILENAME.asm -o FILENAME `
 ` $ qemu-system-i386 FILENAME `
+
+# Running
+
+` $ make all `
