@@ -15,12 +15,13 @@ COD_AG 	 TIMES CAPACITY * (AG_LEN   + 1)	DB 0
 COD_AC 	 TIMES CAPACITY * (AC_LEN   + 1)	DB 0
 LENGTH 	 				DW 0	; the current of size of DB starts empty
 
-AGENCIES TIMES CAPACITY * AG_LEN 	DB 1  ; all unique agencies of this DB
+AGENCIES TIMES CAPACITY * (AG_LEN + 1) 	DB 0  ; all unique agencies of this DB
 AGENCIES_ARRAY_LEN			DW 0  ; lenght of AGENCIES array
 ;;; END OF ARRAY SECTION
 
 ;;; BEGIN OF FLAGS SECTION
-GET_ALL_AGENCIES 			DB 0  ; when an update/create/remove of agency number, be called, set to 1
+GET_ALL_AGENCIES 			DB 1  ; when an update/create/remove of agency number, be called, set to 1
+CUR_AGENCY_PRESENT			DB 0 
 ;;; END OF FLAGS SECTION
 
 ;;; BEGIN OF IO SECTION
@@ -285,7 +286,8 @@ START:
     
     LISTAGENCIES:
         ; list agencies code goes here
-        jmp END
+	call LIST_ALL_AGENCIES
+	jmp mainmenu
     
     LISTACCOUNTS:
 	; list accounts code goes here
@@ -828,7 +830,129 @@ LIST_BY_AGENCY:
 	.end:
 		popa
 		ret
+;;; check if source string number is present on AGENCIES cacche
+;; @param: SI, the agency number
+FILTER_DUP_AGENCIES:	
+	.start:
+		pusha
+		
+		mov byte [CUR_AGENCY_PRESENT], 0
+	
+		mov bx, 0		; base mode only works with BX
+		mov dx, 0		; index ageny
+	
+	.findAddress:
 
+		cmp dx, [AGENCIES_ARRAY_LEN]
+		je .end
+		inc dx
+	
+		lea di, [AGENCIES + bx]	; load effective address of entry	
+		add bx, AG_LEN
+	
+		push si			; and si
+		mov cx, AG_LEN		; get str max size 
+	
+	.comparison:
+		cmpsb			; compare characcters 
+		jne .posComp
+		loop .comparison	; else, continue until the end of current string
+	
+		mov byte [CUR_AGENCY_PRESENT],  1 ; the SI string is present
+
+		pop si		; remove si of stack
+		popa		; restore state
+		ret		; and return
+	
+	.posComp:	
+		pop si
+		jne .findAddress		
+	
+	.end:
+		popa
+		ret	
+
+;;; Append source Agency string into rear of AGENCIES
+;; @param: SI as agency string
+APPEND_INTO_AGENCIES:
+	.start:
+		pusha
+
+		mov ax, AG_LEN
+		mul word [AGENCIES_ARRAY_LEN]
+		mov bx, ax
+		lea di, [AGENCIES + bx]
+
+		mov cx, AG_LEN
+		inc word [AGENCIES_ARRAY_LEN]
+
+	.insert:
+		movsb
+		loop .insert
+	
+	.end:
+		popa
+		ret
+
+;;; list all different agencies from database
+LIST_ALL_AGENCIES:
+	.start:
+		pusha
+		cmp byte [GET_ALL_AGENCIES], 0
+		je .print		
+
+		mov cx, 0
+		mov byte [AGENCIES_ARRAY_LEN], 0
+	
+	.findAddress:
+		mov ax, AG_LEN		; set ax to reserved size of ag length
+		mul cx			; multiplies it by index
+		mov bx, ax		; base mode only works with BX
+
+		lea si, [COD_AG + bx]	; load effective address of entry	
+
+		call FILTER_DUP_AGENCIES
+		cmp byte [CUR_AGENCY_PRESENT], 1
+		je .notAppend
+	
+		call APPEND_INTO_AGENCIES
+	
+	.notAppend:
+	
+		inc cx
+		cmp cx, [LENGTH]
+		je .print
+		jmp .findAddress
+	
+	.print:
+		mov cx, 0
+
+	.while:
+		cmp cx, word [AGENCIES_ARRAY_LEN]
+		je .end
+
+		mov ax, AG_LEN
+		mul cx
+		mov bx, ax
+
+		lea si, [AGENCIES+BX]
+		call printstr
+		call println
+
+		mov si, SEPARATOR
+		call printstr
+		call println
+
+		mov di, BUFF
+		call readstr	
+	
+		inc cx
+		jmp .while
+	
+	.end:
+		popa
+		ret
+	
 ;;; Store string from si at memory position pointed by di
 ;; @reg: cx, where cx is string size
 STORESTRING:
