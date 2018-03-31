@@ -4,10 +4,10 @@ jmp 0x0000:START
 ;;; BEGIN OF ARRAY SECTION
 CAPACITY EQU 6
 
-NAME_LEN EQU 20
-CPF_LEN  EQU 11
-AG_LEN   EQU 05
-AC_LEN   EQU 06
+NAME_LEN EQU 21 	;20 characters + '\0'
+CPF_LEN  EQU 12		;11 characters + '\0'
+AG_LEN   EQU 06		;05 characters + '\0'
+AC_LEN   EQU 07		;06 characters + '\0'
 	
 NAME 	 TIMES CAPACITY * (NAME_LEN + 1)	DB 0 	; array of 20 characters by item
 CPF 	 TIMES CAPACITY * (CPF_LEN  + 1)	DB 0	; all above will use double word integer
