@@ -14,6 +14,7 @@ CPF 	 TIMES CAPACITY * (CPF_LEN  + 1)	DB 0	; all above will use double word inte
 COD_AG 	 TIMES CAPACITY * (AG_LEN   + 1)	DB 0
 COD_AC 	 TIMES CAPACITY * (AC_LEN   + 1)	DB 0
 LENGTH 	 				DW 0	; the current of size of DB starts empty
+GOIDA					DW 0
 
 AGENCIES TIMES CAPACITY * (AG_LEN + 1) 	DB 0  ; all unique agencies of this DB
 AGENCIES_ARRAY_LEN			DW 0  ; lenght of AGENCIES array
@@ -36,31 +37,47 @@ TEST_PROMPT		    DB 'hello world!',	0
 ;;; END OF IO SECTION
 
 ;;; MAIN MENU OPTIONS
-title       DB ' Welcome to the SafeMoney Bank System '         , 0
-subtitle    DB ' Please select your operation below '           , 0
-option1     DB ' 1. Create new account '                        , 0
-option2     DB ' 2. Show existing account '                     , 0
-option3     DB ' 3. Edit existing account '                     , 0
-option4     DB ' 4. Delete existing account '                   , 0
-option5     DB ' 5. List SafeMoney agencies '                   , 0
-option6     DB ' 6. List SafeMoney accounts '                   , 0
-option7     DB ' 7. Exit SafeMoney Bank '                       , 0
-invopt      DB ' Invalid command provided. Please try again. '  , 0
+title       DB ' Welcome to the SafeMoney Bank System '        			, 0
+subtitle    DB ' Please select your operation below '           		, 0
+option1     DB ' 1. Create new account '                    	    	, 0
+option2     DB ' 2. Show existing account '             	    	    , 0
+option3     DB ' 3. Edit existing account '           	       			, 0
+option4     DB ' 4. Delete existing account '                   		, 0
+option5     DB ' 5. List SafeMoney agencies '               		    , 0
+option6     DB ' 6. List SafeMoney accounts '              	    		, 0
+option7     DB ' 7. Exit SafeMoney Bank '                       		, 0
+invopt      DB ' Invalid command provided. Please try again. '	  		, 0
 ;;; END OF MAIN MENU OPTIONS
 
 ;;; CREATE OPTIONS
-prompt1		DB ' Please type the name of the account owner '	, 0
-prompt2		DB ' Please type the CPF of the account owner '		, 0
-prompt3		DB ' Please type the Agency of the new account '	, 0
-prompt4		DB ' Please type the Code of the new account '		, 0
+prompt1		DB ' Please type the name of the account owner '		, 0
+prompt2		DB ' Please type the CPF of the account owner '			, 0
+prompt3		DB ' Please type the Agency of the new account '		, 0
+prompt4		DB ' Please type the Code of the new account '			, 0
 ;;; END OF CREATE OPTIONS
+
+;;; DELETE MESSAGES
+del 		DB ' Please type the Code of the account you want to remove ', 0
+error		DB ' Error. Invalid Code.'									 , 0
+;;; END OF DELETE MESSAGES
+
+;;; EDIT MESSAGES
+edit_prompt1	DB ' Please type the Code of the account you want to edit '	, 0
+edit_prompt2	DB ' The Code you have entered is not registered '			, 0
+edit_prompt3	DB ' Would you like to change the name of the account owner? ', 13, 10, ' Press 1 to yes, 0 to no ', 0
+edit_prompt4	DB ' Would you like to change the CPF of the account owner? ', 13, 10, ' Press 1 to yes, 0 to no ', 0
+edit_prompt5	DB ' Would you like to change the Agency of the account? ', 13, 10, ' Press 1 to yes, 0 to no ', 0
+edit_prompt6	DB ' CURRENT NAME: ', 0
+edit_prompt7	DB ' CURRENT CPF: ', 0
+edit_prompt8	DB ' CURRENT AGENCY: ', 0
+;;; END OF EDIT MESSAGES
 
 ;;; OUTPUT MESSAGES
 name_info	 DB ' Client Name: '								, 0
-cpf_info	 DB ' Client CPF: '								, 0
+cpf_info	 DB ' Client CPF: '									, 0
 ag_info		 DB ' Client Agency: '								, 0
 ac_info	 	 DB ' Client Account: '								, 0
-agency_query_msg DB ' Insert an Agency Code: '							, 0
+agency_query_msg DB ' Insert an Agency Code: '					, 0
 ;;; END OF OUTPUT MESSAGES
 
 ;%macro 
@@ -277,12 +294,297 @@ START:
         jmp END
 
     EDIT:
-        ; EDIT code goes here
-        jmp END
+
+    	mov si, edit_prompt1 ; Please type the Code of the account you want to edit
+    	call printstr
+    	call println
+
+	   	call FIND_AC ; dx has the account
+
+	   	cmp dx, -1 ; (dx = -1) -> invalid code 
+	   	jne .EDIT_NAME ; continue if valid
+
+	   	call clearScr  ; otherwise clears the screen and prints the invalid code warning
+	   	mov si, edit_prompt2
+	   	call printstr
+	   	call println
+
+	   	jmp EDIT ; back to the beginning
+
+	.EDIT_NAME:
+
+		; first print the current name of the owner
+		call clearScr   ; fresh screen
+		mov si, edit_prompt6 
+		call printstr
+
+		mov ax, NAME_LEN ; ax = 20
+	   	mul dx ; ax = dx*ax
+
+		mov si, ax
+		call printstr
+		call println
+
+		; then ask if the user wants to change it and reads the answer
+		mov si, edit_prompt3
+		call printstr
+		call println
+
+		.read:
+			mov ah, 0 	; read keystroke
+			int 16h		; keyboard interrupt
+		cmp al, 0 		; al has the answer
+		je .EDIT_CPF
+		cmp al, 1
+		jne .read 		; keeps reading if not 0 or 1
+
+		; the actual change of the name
+		call clearScr   ; fresh screen
+	   	mov ax, NAME_LEN ; ax = 20
+	   	mul dx ; ax = dx*ax
+
+	   	mov di, NAME
+	   	add di, ax ; points destination index to the right place to be edited
+
+	   	call readvstr
+
+	.EDIT_CPF:
+
+		; first print the current cpf of the owner
+		call clearScr   ; fresh screen
+		mov si, edit_prompt7
+		call printstr
+
+		mov ax, CPF_LEN ; ax = 11
+	   	mul dx ; ax = dx*ax
+
+		mov si, ax
+		mov cx, CPF_LEN
+		.printCPF:
+			lodsb 		; si -> al
+			mov ah, 0xe 	; print char and move cursor foward
+			mov bh, 0 	; page number
+			mov bl, 0xf 	; white color
+			int 10h 	; video interrupt
+			loop .printCPF
+		call println
+
+		; then ask if the user wants to change it and reads the answer
+		mov si, edit_prompt4
+		call printstr
+		call println
+
+		.read_answer:
+			mov ah, 0 	; read keystroke
+			int 16h		; keyboard interrupt
+		cmp al, 0 		; al has the answer
+		je .EDIT_AG
+		cmp al, 1
+		jne .read_answer; keeps reading if not 0 or 1
+
+		;the actual change of the CPF
+		call clearScr   ; fresh screen
+	   	mov ax, CPF_LEN ; ax = 11
+	   	mul dx ; ax = dx*ax
+
+	   	mov di, CPF
+	   	add di, ax ; points destination index to the right place to be edited
+
+	   	call readvstr
+
+	.EDIT_AG:
+
+		; first print the current agency of the account
+		call clearScr   ; fresh screen
+		mov si, edit_prompt8
+		call printstr
+
+		mov ax, AG_LEN ; ax = 5
+	   	mul dx ; ax = dx*ax
+
+		mov si, ax
+		mov cx, AG_LEN
+		.print:
+			lodsb 		; si -> al
+			mov ah, 0xe 	; print char and move cursor foward
+			mov bh, 0 	; page number
+			mov bl, 0xf 	; white color
+			int 10h 	; video interrupt
+			loop .print
+		call println
+
+		; then ask if the user wants to change it and reads the answer
+		mov si, edit_prompt5
+		call printstr
+		call println
+
+		.readAG:
+			mov ah, 0 	; read keystroke
+			int 16h		; keyboard interrupt
+		cmp al, 0 		; al has the answer
+		je .END
+		cmp al, 1
+		jne .readAG		; keeps reading if not 0 or 1
+
+		;the actual change of the agency
+		call clearScr   ; fresh screen
+	   	mov ax, AG_LEN ; ax = 5
+	   	mul dx ; ax = dx*ax
+
+	   	mov di, COD_AG
+	   	add di, ax ; points destination index to the right place to be edited
+
+	   	call readvstr
+
+	.END:
+        jmp mainmenu
 
     DELETE:
-        ; DELETE code goes here
-        jmp END
+        .start:
+
+        	mov si, del
+        	call printstr
+        	call println
+        	
+            call FIND_AC
+            	
+           	xor ax, ax
+           	xor bx, bx
+           	xor cx, cx
+            
+           	mov cx , dx
+            	
+           	cmp cx, -1
+           	je .msgerror
+           
+      	.CPF:
+        ;bx cadastros-1
+       	;cx cadastro a ser deletado MENOS 1
+       	;dx comeca em 1
+        	mov dx, 1
+            mov bx, [LENGTH] 		;bx recebe o total de cadastros
+            dec bx
+            sub bx, cx				;bx = bx -cx, agora bx recebe a quantidade de cadastros que serão deslocados 1 indice à esquerda
+            mov ax, CPF_LEN			;ax recebe o tamanho de caracteres de um CPF
+            mul bx					;ax=bx*ax , ax recebe a quantidade de caracteres que serão deslocados 1 posição à esquerda
+            mov bx, ax				; bx recebe o valor de ax
+            
+            mov ax, 0				; mover 0 para ax
+
+            mov di, CPF				;di aponta para o inicio do vetor de CPFs
+            mov ax, CPF_LEN			;ax recebe o tamanho de caracteres de um CPF 
+            mul cx					;ax=ax*cx , ax recebe a quantidade de caracteres que não serão alterados de lugar
+            add di, ax				;di agora aponta para o primeiro caractere a ser alterado
+            mov si, CPF+CPF_LEN		;si aponta para o inicio do segundo CPF
+            add si, ax				;si agora aponta para o primeiro caractere a ser movido para onde di esta apontando
+            cmp bx,0				;comparar bx com 0
+            je .done				;caso igual pular para a função .done
+            jmp .del1				;caso nao, ir para del1
+             
+        .del1:
+            lodsb 				;carrega em al o caractere apontado por si
+            stosb 				;carrega na posicao apontada por di o caractere contido em al 
+            inc dx 				;incrementa dx
+            cmp dx, bx			;compara dx com bc
+            je .AG 				;caso iguais, a remoção do CPF esta concluida
+            jmp .del1			;caso nao, continuamos a remoção
+        .AG:
+        	mov dx, 1
+        	mov bx, [LENGTH]
+        	dec bx
+        	sub bx, cx
+        	mov ax, AG_LEN
+        	mul bx
+        	mov bx, ax
+
+        	mov ax, 0
+
+	        mov di, COD_AG
+	        mov ax, AG_LEN 
+	        mul cx
+	        add di, ax
+	        mov si, COD_AG+AG_LEN
+	        add si, ax
+	        cmp bx,0
+	        je .done
+	        jmp .del2
+	     
+        .del2:
+            lodsb
+            stosb
+            inc dx 
+            cmp dx, bx
+            je .CC
+        	jmp .del2
+        .CC:
+         	mov dx, 1
+            mov bx, [LENGTH]
+            dec bx
+            sub bx, cx
+            mov ax, AC_LEN
+            mul bx
+            mov bx, ax
+
+            mov ax, 0
+
+            mov di, COD_AC
+            mov ax, AC_LEN 
+            mul cx
+            add di, ax
+            mov si, COD_AC+AC_LEN
+            add si, ax
+            cmp bx,0
+            je .done
+            jmp .del3
+         
+        .del3:
+            lodsb
+            stosb
+            inc dx 
+            cmp dx, bx
+            je .NAME
+            jmp .del3
+        .NAME:
+        	mov dx, 1
+            mov bx, [LENGTH]
+            dec bx
+            sub bx, cx
+            mov ax, NAME_LEN
+            mul bx
+            mov bx, ax
+
+            mov ax, 0
+
+            mov di, NAME
+            mov ax, NAME_LEN
+            mul cx
+            add di, ax
+            mov si, NAME+NAME_LEN
+            add si, ax
+            cmp bx,0
+            je .done
+            jmp .del4
+         
+        .del4:
+            lodsb
+            stosb
+            inc dx 
+            cmp dx, bx
+            je .done
+            jmp .del4
+
+        .done:
+        	mov cx, [LENGTH]
+        	dec cx
+        	mov [LENGTH], cx
+        	jmp mainmenu
+    	.msgerror:
+    		mov si, error		
+    		call printstr
+    		call println
+    		jmp .start
+          
+        jmp mainmenu
     
     LISTAGENCIES:
         ; list agencies code goes here
@@ -751,6 +1053,66 @@ PRINT_ENTRY:
 		pop di
 		pop si
 		ret
+
+FIND_AC:
+	
+	mov di, BUFF
+	call readvstr
+	xor bx, bx
+	xor ax, ax
+	xor dx, dx
+	xor cx, cx
+	.find:
+		mov si, COD_AC
+		add si, bx
+		lodsb
+		mov cl, al
+		mov si, BUFF
+		add si, dx
+		lodsb
+		cmp cl, al
+		je .equall
+		jmp .continue
+		.equall:
+				inc ch
+				jmp .continue
+		.continue:
+				inc bx
+				inc dx
+				cmp dx, 6
+				je  .avaliable			
+				jmp .find
+		.avaliable:
+				cmp ch, 6
+				je .encontrado
+				jmp .zeragem
+		.zeragem:
+				xor ax, ax
+				mov ax, [GOIDA]
+        		inc ax
+        		mov [GOIDA], ax
+				xor ax, ax
+				xor dx, dx
+				mov ax, [LENGTH]
+				mov dx, [GOIDA]
+				cmp ax, dx
+			
+				je .naoencontrado
+				mov dx, 0
+				mov ch, 0
+				jmp .find
+		.encontrado:
+				xor dx, dx
+				mov dx, [GOIDA]
+				xor ax, ax
+				mov [GOIDA], ax
+				ret
+
+		.naoencontrado:
+				xor dx, dx
+				mov [GOIDA], dx
+				mov dx, -1
+				ret
 
 ;;; print all of Database
 ;; @warning: it will modify BUFF
