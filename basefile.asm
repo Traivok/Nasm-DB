@@ -97,7 +97,7 @@ START:
 
     ;; Print main menu routine.
     mainmenu:
-        ;call clearScr       ; First things first, let's start with a fresh screen.
+        call clearScr       ; First things first, let's start with a fresh screen.
 		mov si, SEPARATOR
 		call printstr
 		call println
@@ -301,8 +301,8 @@ START:
 
 	   	call FIND_AC ; dx has the account
 
-	   	cmp dx, -1 ; (dx = -1) -> invalid code 
-	   	jne .EDIT_NAME ; continue if valid
+	   	cmp dx, 0 ; (dx = -1) -> invalid code
+	   	jge EDIT_NAME ; continue if valid
 
 	   	call clearScr  ; otherwise clears the screen and prints the invalid code warning
 	   	mov si, edit_prompt2
@@ -311,17 +311,18 @@ START:
 
 	   	jmp EDIT ; back to the beginning
 
-	.EDIT_NAME:
+	EDIT_NAME:
 
 		; first print the current name of the owner
 		call clearScr   ; fresh screen
-		mov si, edit_prompt6 
+		mov si, edit_prompt6
 		call printstr
 
-		mov ax, NAME_LEN ; ax = 20
+		mov ax, NAME_LEN ; ax = 21
 	   	mul dx ; ax = dx*ax
 
-		mov si, ax
+		mov si, NAME
+		add si, ax
 		call printstr
 		call println
 
@@ -333,22 +334,26 @@ START:
 		.read:
 			mov ah, 0 	; read keystroke
 			int 16h		; keyboard interrupt
-		cmp al, 0 		; al has the answer
-		je .EDIT_CPF
-		cmp al, 1
-		jne .read 		; keeps reading if not 0 or 1
+
+			cmp al, '0' 		; al has the answer
+			je EDIT_CPF
+			cmp al, '1'
+			jne .read 		; keeps reading if not 0 or 1
 
 		; the actual change of the name
 		call clearScr   ; fresh screen
+		mov si, prompt1	
+		call printstr
+		call println
+
 	   	mov ax, NAME_LEN ; ax = 20
 	   	mul dx ; ax = dx*ax
-
 	   	mov di, NAME
 	   	add di, ax ; points destination index to the right place to be edited
 
 	   	call readvstr
 
-	.EDIT_CPF:
+	EDIT_CPF:
 
 		; first print the current cpf of the owner
 		call clearScr   ; fresh screen
@@ -357,16 +362,17 @@ START:
 
 		mov ax, CPF_LEN ; ax = 11
 	   	mul dx ; ax = dx*ax
+		mov si, CPF
+		add si, ax
 
-		mov si, ax
 		mov cx, CPF_LEN
-		.printCPF:
+		.print:
 			lodsb 		; si -> al
 			mov ah, 0xe 	; print char and move cursor foward
 			mov bh, 0 	; page number
 			mov bl, 0xf 	; white color
 			int 10h 	; video interrupt
-			loop .printCPF
+			loop .print
 		call println
 
 		; then ask if the user wants to change it and reads the answer
@@ -374,35 +380,39 @@ START:
 		call printstr
 		call println
 
-		.read_answer:
+		.read:
 			mov ah, 0 	; read keystroke
 			int 16h		; keyboard interrupt
-		cmp al, 0 		; al has the answer
-		je .EDIT_AG
-		cmp al, 1
-		jne .read_answer; keeps reading if not 0 or 1
+		cmp al, '0' 		; al has the answer
+		je EDIT_AG
+		cmp al, '1'
+		jne .read; keeps reading if not 0 or 1
 
 		;the actual change of the CPF
 		call clearScr   ; fresh screen
+		mov si, prompt2
+		call printstr
+		call println
+
 	   	mov ax, CPF_LEN ; ax = 11
 	   	mul dx ; ax = dx*ax
-
 	   	mov di, CPF
 	   	add di, ax ; points destination index to the right place to be edited
 
 	   	call readvstr
 
-	.EDIT_AG:
+	EDIT_AG:
 
 		; first print the current agency of the account
 		call clearScr   ; fresh screen
 		mov si, edit_prompt8
 		call printstr
 
-		mov ax, AG_LEN ; ax = 5
+		mov ax, AG_LEN ; ax = 5+1
 	   	mul dx ; ax = dx*ax
+	   	mov si, COD_AG
+		add si, ax
 
-		mov si, ax
 		mov cx, AG_LEN
 		.print:
 			lodsb 		; si -> al
@@ -418,19 +428,22 @@ START:
 		call printstr
 		call println
 
-		.readAG:
+		.read:
 			mov ah, 0 	; read keystroke
 			int 16h		; keyboard interrupt
-		cmp al, 0 		; al has the answer
+		cmp al, '0' 		; al has the answer
 		je .END
-		cmp al, 1
-		jne .readAG		; keeps reading if not 0 or 1
+		cmp al, '1'
+		jne .read		; keeps reading if not 0 or 1
 
 		;the actual change of the agency
 		call clearScr   ; fresh screen
+		mov si, prompt1	
+		call printstr
+		call println
+
 	   	mov ax, AG_LEN ; ax = 5
 	   	mul dx ; ax = dx*ax
-
 	   	mov di, COD_AG
 	   	add di, ax ; points destination index to the right place to be edited
 
@@ -445,7 +458,7 @@ START:
         	mov si, del
         	call printstr
         	call println
-        	
+
             call FIND_AC
             	
            	xor ax, ax
