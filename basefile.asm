@@ -13,27 +13,27 @@ NAME 	 TIMES CAPACITY * (NAME_LEN + 1)	DB 0 	; array of 20 characters by item
 CPF 	 TIMES CAPACITY * (CPF_LEN  + 1)	DB 0	; all above will use double word integer
 COD_AG 	 TIMES CAPACITY * (AG_LEN   + 1)	DB 0
 COD_AC 	 TIMES CAPACITY * (AC_LEN   + 1)	DB 0
-LENGTH 	 				DW 0	; the current of size of DB starts empty
-GOIDA					DW 0
+LENGTH 	 									DW 0	; the current of size of DB starts empty
+GOIDA										DW 0
 
-AGENCIES TIMES CAPACITY * (AG_LEN + 1) 	DB 0  ; all unique agencies of this DB
-AGENCIES_ARRAY_LEN			DW 0  ; lenght of AGENCIES array
+AGENCIES TIMES CAPACITY * (AG_LEN + 1) 		DB 0  ; all unique agencies of this DB
+AGENCIES_ARRAY_LEN							DW 0  ; lenght of AGENCIES array
 ;;; END OF ARRAY SECTION
 
 ;;; BEGIN OF FLAGS SECTION
-GET_ALL_AGENCIES 			DB 1  ; when an update/create/remove of agency number, be called, set to 1
-CUR_AGENCY_PRESENT			DB 0 
+GET_ALL_AGENCIES 							DB 1  ; when an update/create/remove of agency number, be called, set to 1
+CUR_AGENCY_PRESENT							DB 0 
 ;;; END OF FLAGS SECTION
 
 ;;; BEGIN OF IO SECTION
-IO_NAME  TIMES NAME_LEN + 1 DB 0  ; for storing client's username
-IO_CPF 	 TIMES CPF_LEN  + 1 DB 0  ; for storing client's cpf
-IO_AG	 TIMES AG_LEN   + 1 DB 0  ; for storing client's bank agency
-IO_AC 	 TIMES AC_LEN   + 1 DB 0  ; for storing client's bank account
-BUFF 	 TIMES 32     	    DB 0  ; general purpose keyboard buffer
-AG_QUERY TIMES 32	    DB 0  ; agency number query goes here
-SEPARATOR 		    DB '-------------------------------------', 0
-TEST_PROMPT		    DB 'hello world!',	0	
+IO_NAME  	TIMES 	NAME_LEN + 1			DB 0  ; for storing client's username
+IO_CPF 	 	TIMES 	CPF_LEN  + 1 			DB 0  ; for storing client's cpf
+IO_AG	 	TIMES 	AG_LEN   + 1 			DB 0  ; for storing client's bank agency
+IO_AC 	 	TIMES 	AC_LEN   + 1 			DB 0  ; for storing client's bank account
+BUFF 	 	TIMES 	32     	    			DB 0  ; general purpose keyboard buffer
+AG_QUERY 	TIMES 	32	    				DB 0  ; agency number query goes here
+SEPARATOR 		    						DB '-------------------------------------', 0
+TEST_PROMPT		    						DB 'hello world!',	0	
 ;;; END OF IO SECTION
 
 ;;; MAIN MENU OPTIONS
@@ -50,10 +50,10 @@ invopt      DB ' Invalid command provided. Please try again. '	  		, 0
 ;;; END OF MAIN MENU OPTIONS
 
 ;;; CREATE OPTIONS
-prompt1		DB ' Please type the name of the account owner '		, 0
-prompt2		DB ' Please type the CPF of the account owner '			, 0
-prompt3		DB ' Please type the Agency of the new account '		, 0
-prompt4		DB ' Please type the Code of the new account '			, 0
+prompt1		DB ' Please type the name of the account owner '			, 0
+prompt2		DB ' Please type the CPF of the account owner '				, 0
+prompt3		DB ' Please type the Agency of the new account '			, 0
+prompt4		DB ' Please type the Code of the new account '				, 0
 ;;; END OF CREATE OPTIONS
 
 ;;; DELETE MESSAGES
@@ -71,6 +71,10 @@ edit_prompt6	DB ' CURRENT NAME: ', 0
 edit_prompt7	DB ' CURRENT CPF: ', 0
 edit_prompt8	DB ' CURRENT AGENCY: ', 0
 ;;; END OF EDIT MESSAGES
+
+;;; SHOW MESSAGES
+show_prompt1	DB ' Please type the Code of the account you want to show ' ,0
+;;; END OF SHOW MESSAGES
 
 ;;; OUTPUT MESSAGES
 name_info	 DB ' Client Name: '								, 0
@@ -290,8 +294,31 @@ START:
         jmp mainmenu
 
     SHOW:
-        ; SHOW code goes here
-        jmp END
+        call clearScr
+		mov si, show_prompt1
+		call printstr
+		call println
+
+		call FIND_AC ; dx has the account
+
+		cmp dx, 0 ; (dx = -1) -> invalid code
+	   	jge .SHOW_DESIRED_AC ; continue if valid
+
+	   	call clearScr  ; otherwise clears the screen and prints the invalid code warning
+	   	mov si, edit_prompt2
+	   	call printstr
+	   	call println
+
+	   	jmp SHOW ; back to the beginning
+
+		.SHOW_DESIRED_AC:
+			mov cx, dx
+			call COPY_TO_OUTPUT
+			call PRINT_ENTRY
+			call readvstr
+
+
+        jmp mainmenu
 
     EDIT:
 
@@ -312,7 +339,7 @@ START:
 	   	jmp EDIT ; back to the beginning
 
 	EDIT_NAME:
-
+		push dx 		;stores the account index
 		; first print the current name of the owner
 		call clearScr   ; fresh screen
 		mov si, edit_prompt6
@@ -346,7 +373,10 @@ START:
 		call printstr
 		call println
 
-	   	mov ax, NAME_LEN ; ax = 20
+		pop dx				;dx = account
+		push dx
+		xor ax,ax
+	   	mov ax, NAME_LEN ; ax = 20+1
 	   	mul dx ; ax = dx*ax
 	   	mov di, NAME
 	   	add di, ax ; points destination index to the right place to be edited
@@ -354,7 +384,6 @@ START:
 	   	call readvstr
 
 	EDIT_CPF:
-
 		; first print the current cpf of the owner
 		call clearScr   ; fresh screen
 		mov si, edit_prompt7
@@ -394,6 +423,9 @@ START:
 		call printstr
 		call println
 
+		pop dx				;dx = account
+		push dx
+		xor ax,ax
 	   	mov ax, CPF_LEN ; ax = 11
 	   	mul dx ; ax = dx*ax
 	   	mov di, CPF
@@ -402,7 +434,6 @@ START:
 	   	call readvstr
 
 	EDIT_AG:
-
 		; first print the current agency of the account
 		call clearScr   ; fresh screen
 		mov si, edit_prompt8
@@ -442,6 +473,8 @@ START:
 		call printstr
 		call println
 
+		pop dx				;dx = account
+		xor ax,ax
 	   	mov ax, AG_LEN ; ax = 5
 	   	mul dx ; ax = dx*ax
 	   	mov di, COD_AG
@@ -491,7 +524,7 @@ START:
             mov si, CPF+CPF_LEN		;si aponta para o inicio do segundo CPF
             add si, ax				;si agora aponta para o primeiro caractere a ser movido para onde di esta apontando
             cmp bx,0				;comparar bx com 0
-            je .done				;caso igual pular para a função .done
+            je .done2				;caso igual pular para a função .done
             jmp .del1				;caso nao, ir para del1
              
         .del1:
@@ -588,6 +621,14 @@ START:
 
         .done:
         	mov cx, [LENGTH]
+        	dec cx
+        	mov [LENGTH], cx
+        	jmp mainmenu
+		.done2:
+			mov si, TEST_PROMPT
+			call printstr
+			call readvstr
+			mov cx, [LENGTH]
         	dec cx
         	mov [LENGTH], cx
         	jmp mainmenu
@@ -1075,6 +1116,12 @@ FIND_AC:
 	xor ax, ax
 	xor dx, dx
 	xor cx, cx
+
+	mov bx, [LENGTH]
+	cmp bx, 0
+	je .naoencontrado
+	xor bx, bx
+
 	.find:
 		mov si, COD_AC
 		add si, bx
@@ -1100,6 +1147,7 @@ FIND_AC:
 				je .encontrado
 				jmp .zeragem
 		.zeragem:
+				inc bx
 				xor ax, ax
 				mov ax, [GOIDA]
         		inc ax
@@ -1344,6 +1392,7 @@ STORESTRING:
 SAY_HI:
 	mov si, TEST_PROMPT       ; printstr uses si as parameter
     call printstr       ; call it
+	call readvstr
 	ret
 
 
