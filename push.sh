@@ -1,5 +1,4 @@
 #!/bin/bash
-
 git add $1
 printf "Commit message: "
 read commiter
