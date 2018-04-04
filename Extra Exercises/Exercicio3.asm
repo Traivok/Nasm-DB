@@ -104,7 +104,7 @@ b32:
     xor eax, 0x1	; Disable paging bit & disable 16-bit pmode.
     mov cr0, eax
 
-    jmp 0:back_to_16
+    jmp 0x7c00:back_to_16
 
 [bits 16]
 
@@ -129,8 +129,6 @@ back_to_16:
     sti
     
     mov si, backto16
-    
-    jmp $
 
 print:
     pusha
@@ -144,7 +142,7 @@ print:
     jmp .loop
 .done:
     popa
-    ret
+    jmp $
 
 [SECTION signature start=0x7dfe]
 dw 0AA55h
