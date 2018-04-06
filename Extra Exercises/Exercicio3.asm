@@ -9,22 +9,27 @@ gdt_null:
     dd 0x0
     dd 0x0
 
-gdt_code:
+gdt_code: ; 0x8
     dw 0xffff
     dw 0x0
     db 0x0
     db 10011010b
     db 11001111b
     db 0x0
-
-gdt_data:
+gdt_data: ; 0x10
     dw 0xffff
     dw 0x0
     db 0x0
     db 10010010b
     db 11001111b
     db 0x0
-
+gdt_to_real: ; 0x18
+    dw 0xffff
+    dw 0x0
+    db 0x0
+    db 10011010b
+    db 00001111b
+    db 0x0  
 gdt_end:
 
 gdt_descriptor:
@@ -33,9 +38,10 @@ gdt_descriptor:
 
 CODE_SEG equ gdt_code - gdt_start
 DATA_SEG equ gdt_data - gdt_start
+BACK_REAL equ gdt_to_real - gdt_start
 
-arrive16 db 'estamos 16 bits aehoo', 0
-arrive32 db 'estamos 32 bits - protected mode!', 0
+arrive16 db 'estamos 16 bits aehoo', 13,10, 0
+arrive32 db 'estamos 32 bits - protected mode!', 13, 10, 0
 
 
 kernel_start:
@@ -57,7 +63,7 @@ kernel_start:
     mov eax, cr0
     or eax, 0x1
     mov cr0, eax
-    jmp CODE_SEG:b32
+    jmp 0x8:b32
 
 [bits 32]
 
@@ -80,10 +86,8 @@ print32:
     popa
     ret
 
-
-
 b32:
-    mov ax, DATA_SEG
+    mov ax, 0x10
     mov ds, ax
     mov es, ax
     mov fs, ax
@@ -96,39 +100,46 @@ b32:
     mov ebx, arrive32
     call print32
 
-    ;going back
-
+    ; start the trip of going back
     cli
-    
+
+    jmp 0x18:pre_back_real
+
+pre_back_real:
     mov eax, cr0
     xor eax, 0x1	; Disable paging bit & disable 16-bit pmode.
     mov cr0, eax
 
-    jmp 0x7c00:back_to_16
+    sti
 
-[bits 16]
+    [BITS 16]
+
+	xor ax, ax
+	mov ds, ax
+	mov es, ax
+	mov gs, ax
+	mov fs, ax
+	mov ss, ax
+    
+    jmp 0:back_to_16
+
 
 backto16 db 'voltamos 16 bits - uau!',0
 
-VIDEO_MEMORY_16 equ 0x0B85A0
-COLOR_RED       equ 0x40
+back_to_16:     
+    mov sp, 0x8000
+    mov bp, sp
 
-idt_real:
-	dw 0x3ff		; 256 entries, 4b each = 1K
-	dd 0	
+    ;.clearScr:
+    ;    mov ah, 0x00    ; ah = 0, sets video mode when int 10h is called
+    ;    mov al, 0x03    ; text mode. 80x25. 16 colors. 8 pages. 
+    ;    int 0x10        ; set video mode to the one specified at al
 
-back_to_16:
-    mov ax, 0
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax    
-    mov sp, 0xFFFC
-    
-    sti
-    
     mov si, backto16
+    call print
+
+ .exit:
+    jmp $
 
 print:
     pusha
@@ -142,7 +153,7 @@ print:
     jmp .loop
 .done:
     popa
-    jmp $
+    ret
 
-[SECTION signature start=0x7dfe]
-dw 0AA55h
+times 510-($-$$) db 0   ; fill remainder of boot sector with 0s
+dw 0xAA55               ; The standard PC boot signature
