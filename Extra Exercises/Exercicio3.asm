@@ -40,11 +40,13 @@ CODE_SEG equ gdt_code - gdt_start
 DATA_SEG equ gdt_data - gdt_start
 BACK_REAL equ gdt_to_real - gdt_start
 
-arrive16 db 'estamos 16 bits aehoo', 13,10, 0
-arrive32 db 'estamos 32 bits - protected mode!', 13, 10, 0
+presentation db 13, 10, '  Who are we?', 13, 10, '    gchf - Gabi Correa', 13, 10, '    hscs - Heitor Carvalho', 13, 10, '    jraf - Jose Ricardo', 13, 10, '    kams - Kevin Andrews', 13, 10, '    rlf4 - Ricardo Fagundes', 13, 10, 13, 10, 13, 10, 0
+arrive16 db '  Estamos 16 bits aehoo!', 13, 10, 13, 10, 13, 10, 0
+arrive32 db '[Entramos em 32 bits - protected mode!]', 0
 
 
 kernel_start:
+    call clearScr
     mov ax, 0
     mov ss, ax
     mov sp, 0xFFFC
@@ -54,6 +56,9 @@ kernel_start:
     mov es, ax
     mov fs, ax
     mov gs, ax
+
+    mov si, presentation
+    call print
 
     mov si, arrive16
     call print
@@ -67,7 +72,7 @@ kernel_start:
 
 [bits 32]
 
-VIDEO_MEMORY equ 0xb8000
+VIDEO_MEMORY equ 0x0B8708
 WHITE_ON_BLACK equ 0x0f
 
 print32:
@@ -124,7 +129,7 @@ pre_back_real:
     jmp 0:back_to_16
 
 
-backto16 db 'voltamos 16 bits - uau!',0
+backto16 db 13,10,'  Voltamos aos 16 bits :(', 0
 
 back_to_16:     
     mov sp, 0x8000
@@ -152,6 +157,14 @@ print:
     int 0x10
     jmp .loop
 .done:
+    popa
+    ret
+
+clearScr:
+    pusha
+    mov ah, 0x00    ; ah = 0, sets video mode when int 10h is called
+    mov al, 0x03    ; text mode. 80x25. 16 colors. 8 pages. 
+    int 0x10        ; set video mode to the one specified at al
     popa
     ret
 
