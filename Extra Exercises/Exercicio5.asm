@@ -30,7 +30,7 @@ section .data
     two_n_plus_one dq 0.0           ;stores 2n+1 (obviously)
     pi_by_180 dq 0.017453292
     x_squared dq 0.0                ;stores x²
-
+    aux dq 0.0
     real_sin dq 0.0                 ; to store fsin calculated value
 
     out_0 db 'Insira valor do angulo em Graus e a Precisao desejada:', 10,0
@@ -62,14 +62,6 @@ global main							; it has to be main since we're using gcc linker.
         fld qword[pi_by_180]
         fmulp
         fst qword[x]            ;stores new value of x in radians
-
-        ;;;DEBUG
-        push dword[x + 4]
-        push dword[x]
-        push debug_radians
-        call printf
-        add esp, 12
-        ;;;DEBUG
 
         fsin
         fstp qword[real_sin]
@@ -163,25 +155,32 @@ global main							; it has to be main since we're using gcc linker.
                 fld qword[acc]
                 fsubp
                 fabs
-                fcomip st0, st1 
-                fstp qword[e]
+		fst qword [aux]
+		fcomip st0, st1 
+        	fstp qword[e]
                 ;comparting actual value with fsin
-
-                ;;;DEBUG
-                push dword[acc + 4]
-                push dword[acc]
+	
+		;;;DEBUG
+		pushfd
+        	push dword[aux + 4]
+                push dword[aux]
                 push debug
                 call printf
                 add esp, 12
                 ;;;DEBUG
-                
-
-			jg .while				; loops until ecx = 0
-		
+		;;;DEBUG
+        	push dword[e + 4]
+                push dword[e]
+                push debug
+                call printf
+                add esp, 12
+		popfd
+                ;;;DEBUG    
+		jg .while				; loops until ecx = 0
 
 		; printing sin by taylor
-		push dword[acc + 4]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
-		push dword[acc]				; pushing the other half (printf second parameter pushed)
+		push dword[sin + 4]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
+		push dword[sin]				; pushing the other half (printf second parameter pushed)
 		push out_1					; pushing the printf first parameter
 		call printf					; calling printf to show us sin
 		add esp, 12					; reseting the esp pointer so we don't have to pop the stack
@@ -189,7 +188,7 @@ global main							; it has to be main since we're using gcc linker.
 
         ; printing sin by fsin
         push dword[real_sin + 4]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
-		push dword[real_sin]				; pushing the other half (printf second parameter pushed)
+push dword[real_sin]				; pushing the other half (printf second parameter pushed)
 		push out_2					; pushing the printf first parameter
 		call printf					; calling printf to show us sin
 		add esp, 12					; reseting the esp pointer so we don't have to pop the stack
