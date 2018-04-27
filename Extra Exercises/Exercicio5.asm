@@ -29,6 +29,7 @@ section .data
     fat dq 1.0                      ; stores factorial
     two_n_plus_one dq 0.0           ;stores 2n+1 (obviously)
     pi_by_180 dq 0.017453292
+    x_squared dq 0.0                ;stores x²
 
     real_sin dq 0.0                 ; to store fsin calculated value
 
@@ -58,9 +59,15 @@ global main							; it has to be main since we're using gcc linker.
         fld qword[x]
         fld qword[pi_by_180]
         fmulp
-        fst qword[x] ;stores new value of x in radians
+        fst qword[x]            ;stores new value of x in radians
         fsin
         fstp qword[real_sin]
+
+        ;creating x²
+        fld qword[x]
+        fld qword[x]
+        fmulp
+        fstp qword[x_squared]
 
         ;;;DEBUG
         push dword[real_sin + 4]
@@ -95,6 +102,14 @@ global main							; it has to be main since we're using gcc linker.
                 fmulp
             ;factorial
 
+            ;power
+            .pow:
+                fld qword[x]
+                fld qword[x_squared]
+                fmulp
+                fstp qword[x]
+            ;power
+
             .continue:            
                 ; numerator
                 fld qword[sinal]		; loads the "1" with current signal
@@ -107,16 +122,13 @@ global main							; it has to be main since we're using gcc linker.
                 fdivp st1, st0			; divides 1 or -1 by (2*n + 1)
                 ; dividing
 
-                ;power and multiply
-                fld qword[two_n_plus_one]
-                fld qword[x]
-                fyl2x
-                fld1
-                fscale
-                fxch st1
-                fstp qword[two_n_plus_one]
-                fmulp
-                ;power and multiply
+                ;multiply
+                .multiply:
+                    fld qword[x]
+                    fld qword[x_squared]
+                    fmulp
+                    fmulp
+                ;multiply
 
                 ; summing
                 fld qword[acc]			; loads the sum acumulator into the stack
