@@ -42,6 +42,7 @@ section .data
 
     debug_real_sin db 'valor calculado de fsin: %lf',10, 0
     debug db 'valor atual de sin: %lf',10,0
+    debug_radians db 'valor convertido em rad: %lf', 10, 0
 
 section .text
 global main							; it has to be main since we're using gcc linker.
@@ -56,12 +57,23 @@ global main							; it has to be main since we're using gcc linker.
         call scanf
         add esp, 12 
 
+        ;converts to radians
         fld qword[x]
         fld qword[pi_by_180]
         fmulp
         fst qword[x]            ;stores new value of x in radians
+
+        ;;;DEBUG
+        push dword[x + 4]
+        push dword[x]
+        push debug_radians
+        call printf
+        add esp, 12
+        ;;;DEBUG
+
         fsin
         fstp qword[real_sin]
+        ;converts to radians
 
         ;creating x²
         fld qword[x]
