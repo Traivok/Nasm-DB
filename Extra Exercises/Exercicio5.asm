@@ -58,12 +58,13 @@ global main							; it has to be main since we're using gcc linker.
         fld qword[x]
         fld qword[pi_by_180]
         fmulp
+        fst qword[x] ;stores new value of x in radians
         fsin
         fstp qword[real_sin]
 
         ;;;DEBUG
-        push qword[real_sin + 4]
-        push qword[real_sin]
+        push dword[real_sin + 4]
+        push dword[real_sin]
         push debug_real_sin
         add esp, 12
         ;;;DEBUG
@@ -141,8 +142,8 @@ global main							; it has to be main since we're using gcc linker.
                 ;comparting actual value with fsin
 
                 ;;;DEBUG
-                push qword[acc + 4]
-                push qword[acc]
+                push dword[acc + 4]
+                push dword[acc]
                 push debug
                 add esp, 12
                 ;;;DEBUG
