@@ -39,6 +39,9 @@ section .data
     out_0 db 'Insira valor do angulo em Graus e a Precisao desejada:', 10,0
     in_1 db '%lf %lf', 0
 
+    debug_real_sin db 'valor calculado de fsin: %lf',10, 0
+    debug db 'valor atual de sin: %lf',10,0
+
 section .text
 global main							; it has to be main since we're using gcc linker.
 	main:
@@ -57,6 +60,13 @@ global main							; it has to be main since we're using gcc linker.
         fmulp
         fsin
         fstp qword[real_sin]
+
+        ;;;DEBUG
+        push qword[real_sin + 4]
+        push qword[real_sin]
+        push debug_real_sin
+        add esp, 12
+        ;;;DEBUG
 
         mov ecx, 0					
 		mov ecx, dword[n]			; puts the number of iterations on ecx reg.
@@ -95,7 +105,7 @@ global main							; it has to be main since we're using gcc linker.
                 fdivp st1, st0			; divides 1 or -1 by (2*n + 1)
                 ; dividing
 
-                ;multiply
+                ;power and multiply
                 fld qword[two_n_plus_one]
                 fld qword[x]
                 fyl2x
@@ -104,7 +114,7 @@ global main							; it has to be main since we're using gcc linker.
                 fxch st1
                 fstp qword[two_n_plus_one]
                 fmulp
-                ;multiply
+                ;power and multiply
 
                 ; summing
                 fld qword[acc]			; loads the sum acumulator into the stack
@@ -130,7 +140,15 @@ global main							; it has to be main since we're using gcc linker.
                 fstp qword[e]
                 ;comparting actual value with fsin
 
-			jge .while				; loops until ecx = 0
+                ;;;DEBUG
+                push qword[acc + 4]
+                push qword[acc]
+                push debug
+                add esp, 12
+                ;;;DEBUG
+                
+
+			jg .while				; loops until ecx = 0
 		
 
 		; printing sin by taylor
