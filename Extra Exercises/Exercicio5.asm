@@ -113,11 +113,11 @@ global main							; it has to be main since we're using gcc linker.
                 ; summing
 
                 ; incrementing n
-                fld qword[n]			; loads n value into the stack
+                fild dword[n]			; loads n value into the stack
                 fld1					; loads 1 into the stack
                 faddp					; adds n+1 and pops the stack
-                fstp qword[n]			; saves the updated n value to memory and pops stack.
-                mov ecx, qword[n]
+                fistp dword[n]			; saves the updated n value to memory and pops stack.
+                mov ecx, dword[n]
                 ; incrementing n
 
                 ;comparing actual value with fsin
