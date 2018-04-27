@@ -149,12 +149,16 @@ global main							; it has to be main since we're using gcc linker.
                 ; summing
 
                 ; incrementing n
-                fild dword[n]			; loads n value into the stack
+                fld qword[n]			; loads n value into the stack
                 fld1					; loads 1 into the stack
                 faddp					; adds n+1 and pops the stack
-                fistp dword[n]			; saves the updated n value to memory and pops stack.
-                mov ecx, dword[n]
+                fstp qword[n]			; saves the updated n value to memory and pops stack.
                 ; incrementing n
+
+                ; counting iterations
+                inc ecx
+                mov dword[n_iter], ecx
+                ; 
 
                 ;comparing actual value with fsin
                 fld qword[e]
@@ -194,12 +198,12 @@ global main							; it has to be main since we're using gcc linker.
 		add esp, 12					; reseting the esp pointer so we don't have to pop the stack
         ; printing sin by fsin
 
-        ; printing sin by fsin
-        push dword[n]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
+        ; printing number of iterations
+        push dword[n_iter]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
 		push out_3					; pushing the printf first parameter
 		call printf					; calling printf to show us sin
 		add esp, 8					; reseting the esp pointer so we don't have to pop the stack
-        ; printing sin by fsin
+        ; printing number of iterations
 
 
         
