@@ -66,6 +66,7 @@ global main							; it has to be main since we're using gcc linker.
         push dword[real_sin + 4]
         push dword[real_sin]
         push debug_real_sin
+        call printf
         add esp, 12
         ;;;DEBUG
 
@@ -145,6 +146,7 @@ global main							; it has to be main since we're using gcc linker.
                 push dword[acc + 4]
                 push dword[acc]
                 push debug
+                call printf
                 add esp, 12
                 ;;;DEBUG
                 
