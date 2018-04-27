@@ -5,6 +5,9 @@
 ;; $ gcc -m32 -o ex5 Exercicio5.o
 ;; And execute by typing
 ;; ./ex5
+;; or:
+;; alias e="nasm -f elf Exercicio5.asm && gcc -m32 -o  ex5 Exercicio5.o && ./ex5"
+;; e
 ;;;; The input/output system is implemented in C language
 ;;;; The function that calculates the sin(x) is made in nasm assembly x86
 ;; The program reads from user an angle in degrees (float)
