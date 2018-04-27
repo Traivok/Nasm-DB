@@ -33,11 +33,11 @@ section .data
 
     real_sin dq 0.0                 ; to store fsin calculated value
 
+    out_0 db 'Insira valor do angulo em Graus e a Precisao desejada:', 10,0
 	out_1 db 'Calculated sin(x) by Taylor = %lf', 10,0		; string as parameter to printf
     out_2 db 'Calculated sin(x) by fsin = %lf', 10,0		; string as parameter to printf
     out_3 db 'Number of Iterations: %d', 10,0
 
-    out_0 db 'Insira valor do angulo em Graus e a Precisao desejada:', 10,0
     in_1 db '%lf %lf', 0
 
     debug_real_sin db 'valor calculado de fsin: %lf',10, 0
@@ -90,7 +90,6 @@ global main							; it has to be main since we're using gcc linker.
         ;;;DEBUG
 
         mov ecx, 0					
-		mov ecx, dword[n]			; puts the number of iterations on ecx reg.
 
 		.while:
 			; denominator
@@ -137,8 +136,6 @@ global main							; it has to be main since we're using gcc linker.
                 ;multiply
                 .multiply:
                     fld qword[x]
-                    fld qword[x_squared]
-                    fmulp
                     fmulp
                 ;multiply
 
