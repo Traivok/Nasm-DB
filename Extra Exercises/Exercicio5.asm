@@ -2,7 +2,7 @@
 ;;;; To run this, first compile with nasm:
 ;; $ nasm -f elf Exercicio5.asm
 ;;;; Then link with gcc (ubuntu 64-bit)
-;; $ gcc -m32 -o ex4 Exercicio5.o
+;; $ gcc -m32 -o ex5 Exercicio5.o
 ;; And execute by typing
 ;; ./ex5
 ;;;; The input/output system is implemented in C language
@@ -23,6 +23,9 @@ section .data
 	sin dq 0.0						; to store sin's value at the end of the sum
     x dq 0.0                        ; to store angle user input
     e dq 0.0                        ; to store error user input
+    fat dq 1.0                      ; stores factorial
+    two_n_plus_one dq 0.0           ;stores 2n+1 (obviously)
+    pi_by_180 dq 0.017453292
 
     real_sin dq 0.0                 ; to store fsin calculated value
 
@@ -30,42 +33,30 @@ section .data
     out_2 db 'Calculated sin(x) by fsin = %lf', 10,0		; string as parameter to printf
     out_3 db 'Number of Iterations: %d', 10,0
 
-    out_0 db 'Insira valor do angulo em Graus:', 10,0
+    out_0 db 'Insira valor do angulo em Graus e a Precisao desejada:', 10,0
     in_1 db '%lf %lf', 0
 
 section .text
 global main							; it has to be main since we're using gcc linker.
 	main:
-		mov ecx, 0					
-		mov ecx, dword[n]			; puts the number of iterations on ecx reg.
-
         push out_0
         call printf
         add esp, 4
 
-        push dword[e+4]
-        push dword[e]
-        push dword[x+4]
-        push dword[x]
+        push dword e
+        push dword x 
         push in_1
         call scanf
-        add esp, 20 
-        ;;;;;;;
-
-        push dword[e+4]
-        push dword[e]
-        push out_1
-        call printf
-        add esp, 12 
-        push dword[x+4]
-        push dword[x]
-        push out_2
-        call printf
         add esp, 12 
 
-        ;;;;;;
+        fld qword[x]
+        fld qword[pi_by_180]
+        fmulp
+        fsin
+        fstp qword[real_sin]
 
-        jmp END
+        mov ecx, 0					
+		mov ecx, dword[n]			; puts the number of iterations on ecx reg.
 
 		.while:
 			; denominator
@@ -74,62 +65,96 @@ global main							; it has to be main since we're using gcc linker.
 			fld qword[dois]			; loads 2 into the stack
 			fmulp					; 2*n and pops the stack
 			faddp					; 2*n + 1 and pops the stack
+            fst qword[two_n_plus_one]
 			; denominator
 
             ;factorial
-
+            cmp ecx, 0
+            je .continue
+            .factorial:
+                fld qword[dois]
+                fld qword[n]
+                fmulp
+                fld qword[fat]
+                fmulp
+                fmulp
             ;factorial
 
-			; numerator
-			fld qword[sinal]		; loads the "1" with current signal
-			fchs					; swap current signal
-			fst qword[sinal]		; commit swap to memory to be swapped again next iteration
-			; numerator
+            .continue:            
+                ; numerator
+                fld qword[sinal]		; loads the "1" with current signal
+                fchs					; swap current signal
+                fst qword[sinal]		; commit swap to memory to be swapped again next iteration
+                ; numerator
 
-			; dividing
-			fxch st1				; swap the contents of thestack (numerator with denominator)
-			fdivp st1, st0			; divides 1 or -1 by (2*n + 1)
-			; dividing
+                ; dividing
+                fxch st1				; swap the contents of thestack (numerator with denominator)
+                fdivp st1, st0			; divides 1 or -1 by (2*n + 1)
+                ; dividing
 
-            ;multiply
+                ;multiply
+                fld qword[two_n_plus_one]
+                fld qword[x]
+                fyl2x
+                fld1
+                fscale
+                fxch st1
+                fstp qword[two_n_plus_one]
+                fmulp
+                ;multiply
 
-            ;multiply
+                ; summing
+                fld qword[acc]			; loads the sum acumulator into the stack
+                faddp 					; adds the division with the accumulator and pops the stack
+                fstp qword [acc]			; stores the updated acumulator value into memory and pops the stack
+                ; summing
 
-			; summing
-			fld qword[acc]			; loads the sum acumulator into the stack
-			faddp 					; adds the division with the accumulator and pops the stack
-			fstp qword acc]			; stores the updated acumulator value into memory and pops the stack
-			; summing
+                ; incrementing n
+                fld qword[n]			; loads n value into the stack
+                fld1					; loads 1 into the stack
+                faddp					; adds n+1 and pops the stack
+                fstp qword[n]			; saves the updated n value to memory and pops stack.
+                mov ecx, qword[n]
+                ; incrementing n
 
-			; incrementing n
-			fld qword[n]			; loads n value into the stack
-			fld1					; loads 1 into the stack
-			faddp					; adds n+1 and pops the stack
-			fstp qword[n]			; saves the updated n value to memory and pops stack.
-			; incrementing n
-
-            ;comparing actual value with fsin
-            ;comparting actual value with fsin
+                ;comparing actual value with fsin
+                fld qword[e]
+                fld qword[real_sin]
+                fld qword[acc]
+                fsubp
+                fabs
+                fcomip st0, st1 
+                fstp qword[e]
+                ;comparting actual value with fsin
 
 			jge .while				; loops until ecx = 0
-
-		; obtaining sin
-		fld qword[acc]				; loads acumulator value into the stack
-		fld qword[dois]				; loads 2 into the stack
-		fld qword[dois]				; loads 2 into the stack again
-		faddp						; adds 2+2 and pops the stack
-		fmulp						; accumulator*4 (since we calculated sin/4) and pops the stack
-		; obtaining sin
 		
-		fstp qword[sin]				; stores the value of sin into the memory and pops the stack (leaving it empty)
 
-		; printing sin
-		push dword[sin + 4]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
-		push dword[sin]				; pushing the other half (printf second parameter pushed)
+		; printing sin by taylor
+		push dword[acc + 4]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
+		push dword[acc]				; pushing the other half (printf second parameter pushed)
 		push out_1					; pushing the printf first parameter
 		call printf					; calling printf to show us sin
 		add esp, 12					; reseting the esp pointer so we don't have to pop the stack
-		; printing sin
+		; printing sin by taylor
+
+        ; printing sin by fsin
+        push dword[real_sin + 4]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
+		push dword[real_sin]				; pushing the other half (printf second parameter pushed)
+		push out_2					; pushing the printf first parameter
+		call printf					; calling printf to show us sin
+		add esp, 12					; reseting the esp pointer so we don't have to pop the stack
+        ; printing sin by fsin
+
+        ; printing sin by fsin
+        push dword[n]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
+		push out_3					; pushing the printf first parameter
+		call printf					; calling printf to show us sin
+		add esp, 8					; reseting the esp pointer so we don't have to pop the stack
+        ; printing sin by fsin
+
+
+        
 
 		jmp END						; goodbye, caroline
 
