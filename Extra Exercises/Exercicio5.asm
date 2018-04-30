@@ -18,6 +18,7 @@ extern printf						; Specifies C printf function from stdio.h
 extern scanf                        ; Specifies C scanf function from stdio.h
 
 section .data
+    MAX dd 4294967295				; max value of double word, for some neat precision
 	n_iter	dd 0				    ; counts number of iterations
 	dois dq 2.0						; for quick loading on FPU stack. value has to be specified as floating point, else we should use integer specific instructions.
 	n 	dq  0.0						; current iteration
@@ -43,6 +44,7 @@ section .data
     debug_real_sin db 'valor calculado de fsin: %lf',10, 0
     debug db 'valor atual de sin: %lf',10,0
     debug_radians db 'valor convertido em rad: %lf', 10, 0
+    debug_general db 'debug: %lf',10,0
 
 section .text
 global main							; it has to be main since we're using gcc linker.
@@ -72,13 +74,14 @@ global main							; it has to be main since we're using gcc linker.
         fld qword[x]
         fmulp
         fstp qword[x_squared]
+        ;creating x²
 
         ;;;DEBUG
-        push dword[real_sin + 4]
-        push dword[real_sin]
-        push debug_real_sin
-        call printf
-        add esp, 12
+        ;push dword[real_sin + 4]
+        ;push dword[real_sin]
+        ;push debug_real_sin
+        ;call printf
+        ;add esp, 12
         ;;;DEBUG
 
         mov ecx, 0					
@@ -147,7 +150,10 @@ global main							; it has to be main since we're using gcc linker.
                 ; counting iterations
                 inc ecx
                 mov dword[n_iter], ecx
-                ; 
+                ; counting iterations
+
+                ;cmp ecx, 200
+                ;ja .bosta
 
                 ;comparing actual value with fsin
                 fld qword[e]
@@ -155,56 +161,65 @@ global main							; it has to be main since we're using gcc linker.
                 fld qword[acc]
                 fsubp
                 fabs
-		fst qword [aux]
-		fcomip st0, st1 
-        	fstp qword[e]
-                ;comparting actual value with fsin
-	
-		;;;DEBUG
-		pushfd
-        	push dword[aux + 4]
-                push dword[aux]
-                push debug
-                call printf
-                add esp, 12
-                ;;;DEBUG
-		;;;DEBUG
-        	push dword[e + 4]
-                push dword[e]
-                push debug
-                call printf
-                add esp, 12
-		popfd
-                ;;;DEBUG    
-		jg .while				; loops until ecx = 0
+                fst qword [aux]
+                fcomip st0, st1
+                fstp qword[e]
+                ;comparing actual value with fsin
+                
+        ja .while
+    
+    ;.bosta:
 
-		; printing sin by taylor
-		push dword[sin + 4]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
-		push dword[sin]				; pushing the other half (printf second parameter pushed)
-		push out_1					; pushing the printf first parameter
-		call printf					; calling printf to show us sin
-		add esp, 12					; reseting the esp pointer so we don't have to pop the stack
-		; printing sin by taylor
-
-        ; printing sin by fsin
-        push dword[real_sin + 4]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
-push dword[real_sin]				; pushing the other half (printf second parameter pushed)
-		push out_2					; pushing the printf first parameter
-		call printf					; calling printf to show us sin
-		add esp, 12					; reseting the esp pointer so we don't have to pop the stack
-        ; printing sin by fsin
-
-        ; printing number of iterations
-        push dword[n_iter]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
-		push out_3					; pushing the printf first parameter
-		call printf					; calling printf to show us sin
-		add esp, 8					; reseting the esp pointer so we don't have to pop the stack
-        ; printing number of iterations
+    ; moving calculated sin to appropriate variable
+    fld qword[acc]
+    fstp qword[sin]
+    ; moving calculated sin to appropriate variable       
 
 
+    ; printing sin by taylor
+    push dword[sin + 4]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
+    push dword[sin]				; pushing the other half (printf second parameter pushed)
+    push out_1					; pushing the printf first parameter
+    call printf					; calling printf to show us sin
+    add esp, 12					; reseting the esp pointer so we don't have to pop the stack
+    ; printing sin by taylor
+
+    ; printing sin by fsin
+    push dword[real_sin + 4]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
+    push dword[real_sin]				; pushing the other half (printf second parameter pushed)
+    push out_2					; pushing the printf first parameter
+    call printf					; calling printf to show us sin
+    add esp, 12					; reseting the esp pointer so we don't have to pop the stack
+    ; printing sin by fsin
+
+    ; printing number of iterations
+    push dword[n_iter]			; pushing half the memory space of sin into the stack (we can only push 4 bytes a time)
+    push out_3					; pushing the printf first parameter
+    call printf					; calling printf to show us sin
+    add esp, 8					; reseting the esp pointer so we don't have to pop the stack
+    ; printing number of iterations
+
+
+    ;;;DEBUG
+    pushfd
+    push dword[aux + 4]
+    push dword[aux]
+    push debug_general
+    call printf
+    add esp, 12
+    ;;;DEBUG
+    
+    ;;;DEBUG
+    push dword[e + 4]
+    push dword[e]
+    push debug_general
+    call printf
+    add esp, 12
+    popfd
+    ;;;DEBUG
         
 
-		jmp END						; goodbye, caroline
+	jmp END						; goodbye, caroline
 
 
 END:
